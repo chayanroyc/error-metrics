@@ -486,7 +486,7 @@ MIT License
 If you use this library in your research, please cite:
 ```
 @software{error_metrics_library,
-  author = {Your Name},
+  author = {Chayan Roychoudhury},
   title = {Error Metrics Library},
   year = {2024},
   url = {https://github.com/yourusername/error_metrics}

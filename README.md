@@ -270,6 +270,11 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 1
   - Formula: 1 - (mean_bias / mean_observations)²
 
+- **SMA Regression Metrics (SMA)**: Standard Major Axis regression parameters and error decomposition
+  - Outputs: SMA slope/intercept, Mean Lack of Accuracy (MLA), Mean Lack of Precision (MLP), and their percentages
+  - Relationship: MSE = MLA + MLP
+  - Reference: Correndo et al. (2021). https://doi.org/10.1016/j.agsy.2021.103194
+
 - **Figure of Merit (FoM)**: Measure of model performance
   - Range: [0, 100]
   - Perfect score: 100

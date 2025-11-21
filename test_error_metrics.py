@@ -248,6 +248,17 @@ def test_interquartile_rmse(sample_data):
     em_flat = ErrorMetrics(pred_flat, obs_flat)
     assert np.isinf(em_flat.interquartile_rmse())
 
+def test_sma_metrics(sample_data):
+    obs, pred = sample_data
+    em = ErrorMetrics(pred, obs)
+    slope, intercept, mse, mla, mlp, pla, plp = em.sma_metrics()
+    assert isinstance(slope, float)
+    assert isinstance(intercept, float)
+    assert np.isclose(mse, em.root_mean_squared_error() ** 2)
+    assert np.isclose(mse, mla + mlp)
+    if mse > 0:
+        assert np.isclose(pla + plp, 100)
+
 def test_distance_correlation_metric():
     # Strong non-linear relationship (parabola)
     x = np.linspace(-5, 5, 50)

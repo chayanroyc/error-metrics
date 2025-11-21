@@ -1155,6 +1155,50 @@ class ErrorMetrics:
             return np.inf
         return rmse / iqr
 
+    @MetricRegistry.register("SMA Regression Metrics", "SMA", "SMA regression and error decomposition (Correndo et al. 2021)")
+    def sma_metrics(self) -> Tuple[float, float, float, float, float, float, float]:
+        """
+        Calculate SMA regression parameters and MSE decomposition (MLA/MLP).
+
+        Reference:
+            Correndo et al. (2021). https://doi.org/10.1016/j.agsy.2021.103194
+
+        Returns:
+            Tuple containing:
+                - smaslope: SMA slope
+                - smaintercept: SMA intercept
+                - mse: Mean Squared Error
+                - mla: Mean Lack of Accuracy (systematic error)
+                - mlp: Mean Lack of Precision (unsystematic error)
+                - pla_percent: Percentage contribution of MLA
+                - plp_percent: Percentage contribution of MLP
+        """
+        mean_obs = self.obs_mean
+        mean_sim = self.pred_mean
+
+        std_obs = bn.nanstd(self.observations)
+        std_sim = bn.nanstd(self.predictions)
+
+        r = self.correlation_coefficient()
+        if np.isnan(r):
+            r = 0.0
+
+        slope_sma = np.sign(r) * (std_sim / std_obs) if std_obs != 0 else 0.0
+        intercept_sma = mean_sim - (slope_sma * mean_obs)
+
+        mse = bn.nanmean(self.diff ** 2)
+        mla = (mean_sim - mean_obs) ** 2 + (std_sim - std_obs) ** 2
+        mlp = 2 * std_sim * std_obs * (1 - r)
+
+        if mse == 0:
+            pla = 0.0
+            plp = 0.0
+        else:
+            pla = (mla / mse) * 100
+            plp = (mlp / mse) * 100
+
+        return slope_sma, intercept_sma, mse, mla, mlp, pla, plp
+
     def linear_regression(self) -> Tuple[float, float]:
         """Perform linear regression of observations on predictions."""
         x = self.predictions

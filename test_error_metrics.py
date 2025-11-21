@@ -212,12 +212,57 @@ def test_efficiency_metrics(error_metrics):
     assert lce <= 1
     
     assert np.isclose(error_metrics.willmotts_index_of_agreement(), 0.993)
+
+def test_msd_decomposition(sample_data):
+    obs, pred = sample_data
+    em = ErrorMetrics(pred, obs)
+    msd, sb, nu, lc = em.msd_decomposition()
+    assert np.isclose(msd, em.msd())
+    assert np.isclose(sb, em.sb())
+    assert np.isclose(nu, em.nu())
+    assert np.isclose(lc, em.lc())
+    assert np.isclose(msd, sb + nu + lc)
     
     # Test Refined Index of Agreement (Willmott et al. 2012)
     dr = error_metrics.refined_index_of_agreement()
     assert not np.isnan(dr)
     # dr should be in range [-1, 1]
     assert -1.0 <= dr <= 1.0
+
+    # Test Duveiller Agreement Coefficient (lambda)
+    lambda_coeff = em.duveiller_agreement_coefficient()
+    assert -1.0 <= lambda_coeff <= 1.0
+    # Lambda should equal 1 when predictions equal observations
+    perfect_em = ErrorMetrics(obs, obs)
+    assert np.isclose(perfect_em.duveiller_agreement_coefficient(), 1.0)
+
+def test_interquartile_rmse(sample_data):
+    obs, pred = sample_data
+    em = ErrorMetrics(pred, obs)
+    iqrmse = em.interquartile_rmse()
+    assert iqrmse >= 0
+
+    # If IQR is zero, metric should return inf
+    obs_flat = np.ones(5)
+    pred_flat = np.ones(5)
+    em_flat = ErrorMetrics(pred_flat, obs_flat)
+    assert np.isinf(em_flat.interquartile_rmse())
+
+def test_distance_correlation_metric():
+    # Strong non-linear relationship (parabola)
+    x = np.linspace(-5, 5, 50)
+    y = x ** 2
+    em = ErrorMetrics(y, x)
+    dcor = em.distance_correlation()
+    assert dcor > 0.9
+
+    # Nearly independent relationship
+    rng = np.random.RandomState(0)
+    obs = np.linspace(0, 1, 50)
+    random_preds = rng.rand(50)
+    em_rand = ErrorMetrics(random_preds, obs)
+    dcor_rand = em_rand.distance_correlation()
+    assert dcor_rand < 0.7
 
 def test_distribution_metrics(error_metrics):
     # Test distribution-based metrics

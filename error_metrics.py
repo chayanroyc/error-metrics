@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from functools import wraps
 import warnings
 from statsmodels.distributions.empirical_distribution import ECDF
+from scipy.spatial.distance import pdist, squareform
 
 @dataclass
 class MetricInfo:
@@ -950,6 +951,29 @@ class ErrorMetrics:
         _, r2 = self.linear_regression()
         return (1 - r2) * bn.nanmean((self.observations - bn.nanmean(self.observations)) ** 2)
 
+    @MetricRegistry.register("MSD Decomposition", "MSDdec", "Mean Square Deviation decomposition (Gauche)")
+    def msd_decomposition(self) -> Tuple[float, float, float, float]:
+        """
+        Calculate the Mean Square Deviation (MSD) decomposition from Gauche.
+        Gauch, H. G., Hwang, J. T. G., & Fick, G. W. (2003). Model evaluation by comparison of model-based predictions and measured values. Agronomy Journal, 95(6), 1442–1446. 
+        https://doi.org/10.2134/agronj2003.1442↩︎
+
+        MSD can be decomposed into three additive components:
+            MSD = SB + NU + LC
+        where:
+            SB: Systematic Bias component
+            NU: Non-uniformity component
+            LC: Lack of Correlation component
+
+        Returns:
+            Tuple[float, float, float, float]: (MSD, SB, NU, LC)
+        """
+        total_msd = self.msd()
+        sb_component = self.sb()
+        nu_component = self.nu()
+        lc_component = self.lc()
+        return total_msd, sb_component, nu_component, lc_component
+
     @MetricRegistry.register("Skill Score vs Climatology", "SS", "Skill score against climatology")
     def skill_score_against_climatology(self) -> float:
         """Calculate skill score against climatology."""
@@ -1029,6 +1053,107 @@ class ErrorMetrics:
         obs_trend = np.polyfit(np.arange(len(self.observations)), self.observations, 1)[0]
         pred_trend = np.polyfit(np.arange(len(self.predictions)), self.predictions, 1)[0]
         return 1 - abs(obs_trend - pred_trend) / (abs(obs_trend) + 1e-10)
+
+    @MetricRegistry.register("Distance Correlation", "dCor", "Distance correlation (Székely et al. 2007)")
+    def distance_correlation(self) -> float:
+        """
+        Calculate the distance correlation between predictions and observations.
+
+        Distance correlation detects both linear and non-linear associations.
+
+        References:
+            - Székely, G. J., Rizzo, M. L., & Bakirov, N. K. (2007).
+              Measuring and testing dependence by correlation of distances.
+              Annals of Statistics, 35(6), 2769–2794.
+            - Rizzo, M. L., & Székely, G. J. (2022). Energy statistics for
+              independent variables. Statistics & Probability Letters.
+
+        Returns:
+            float: Distance correlation in [0, 1]. 0 implies independence,
+                   1 implies perfect dependence.
+        """
+        if self.N < 2:
+            return np.nan
+
+        obs = self.observations[:, None]
+        preds = self.predictions[:, None]
+
+        # Compute pairwise Euclidean distance matrices
+        a = squareform(pdist(obs, metric="euclidean"))
+        b = squareform(pdist(preds, metric="euclidean"))
+
+        # Double centering
+        mu_a = np.mean(a)
+        mu_b = np.mean(b)
+        mu_a_row = np.mean(a, axis=1)
+        mu_b_row = np.mean(b, axis=1)
+
+        A = a - mu_a_row[:, None] - mu_a_row[None, :] + mu_a
+        B = b - mu_b_row[:, None] - mu_b_row[None, :] + mu_b
+
+        # Distance covariance components
+        dcov2_xy = max(np.mean(A * B), 0.0)
+        dcov2_xx = max(np.mean(A * A), 0.0)
+        dcov2_yy = max(np.mean(B * B), 0.0)
+
+        if dcov2_xx == 0 or dcov2_yy == 0:
+            return 0.0
+
+        dcov_xy = np.sqrt(dcov2_xy)
+        dcov_xx = np.sqrt(dcov2_xx)
+        dcov_yy = np.sqrt(dcov2_yy)
+
+        return dcov_xy / np.sqrt(dcov_xx * dcov_yy)
+
+    @MetricRegistry.register("Duveiller Agreement Coefficient", "lambda", "Symmetric agreement coefficient (Duveiller et al. 2016)")
+    def duveiller_agreement_coefficient(self) -> float:
+        """
+        Calculate Duveiller's agreement coefficient (lambda).
+
+        Reference:
+            Duveiller, G., Fasbender, D., & Meroni, M. (2016).
+            Revisiting the concept of a symmetric index of agreement for continuous datasets.
+            Scientific Reports, 6, 19401. https://doi.org/10.1038/srep19401
+
+        Formula:
+            lambda = 1 - MSE / (Var(obs) + Var(pred) + MBE^2)
+
+        Where:
+            MSE = mean squared error between predictions and observations
+            Var(obs) and Var(pred) are population variances (mean of squared deviations)
+            MBE = mean(obs) - mean(pred) (mean bias error)
+
+        Returns:
+            float: Duveiller's agreement coefficient in (-inf, 1], where 1 indicates perfect agreement.
+        """
+        mse = bn.nanmean(self.diff ** 2)
+        var_obs = bn.nanmean((self.observations - self.obs_mean) ** 2)
+        var_pred = bn.nanmean((self.predictions - self.pred_mean) ** 2)
+        mbe = self.obs_mean - self.pred_mean
+
+        denominator = var_obs + var_pred + mbe ** 2
+        if denominator == 0:
+            return 1.0
+        return 1 - (mse / denominator)
+
+    @MetricRegistry.register("Inter-Quartile RMSE", "iqRMSE", "Inter-Quartile Root Mean Squared Error")
+    def interquartile_rmse(self) -> float:
+        """
+        Calculate the inter-quartile Root Mean Squared Error (iqRMSE).
+
+        iqRMSE normalizes RMSE by the inter-quartile range (IQR) of observations.
+        Reference: Correndo et al., metrica package (https://adriancorrendo.github.io/metrica/).
+
+        Returns:
+            float: iqRMSE value. Lower is better.
+        """
+        rmse = self.root_mean_squared_error()
+        q75 = np.percentile(self.observations, 75)
+        q25 = np.percentile(self.observations, 25)
+        iqr = q75 - q25
+        if iqr == 0:
+            return np.inf
+        return rmse / iqr
 
     def linear_regression(self) -> Tuple[float, float]:
         """Perform linear regression of observations on predictions."""

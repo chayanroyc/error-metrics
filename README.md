@@ -93,12 +93,31 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 1
   - Formula: 1 - var(residuals) / var(observations)
 
+- **Distance Correlation (dCor)**: Distance-based correlation
+  - Range: [0, 1]
+  - Perfect score: 1
+  - Captures both linear and non-linear dependence using distance covariance
+  - References: Székely et al. (2007); Rizzo & Székely (2022)
+
+- **Duveiller Agreement Coefficient (lambda)**: Symmetric agreement coefficient
+  - Range: [-1, 1]
+  - Perfect score: 1
+  - Formula: λ = 1 - MSE / (Var(obs) + Var(pred) + MBE²)
+  - Measures both accuracy and precision; equivalent to CCC when correlation ≥ 0
+  - Reference: Duveiller et al. (2016)
+
 ### Normalized Metrics
 
 - **Normalized Mean Square Error (NMSE)**: Normalized mean square error
   - Range: [0, ∞)
   - Perfect score: 0
   - Formula: mean((predictions - observations)²) / (mean(predictions) * mean(observations))
+
+- **Inter-Quartile RMSE (iqRMSE)**: RMSE normalized by observation IQR
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: √mean((predictions - observations)²) / (Q3 - Q1)
+  - Provides a scale-independent RMSE using the spread of the observations
 
 - **Mean Normalized Bias (MNB)**: Mean normalized bias
   - Range: (-∞, ∞)
@@ -305,6 +324,11 @@ all_metrics = metrics.all_metrics()
   - Range: (-∞, ∞)
   - Perfect score: 1
   - Formula: cov(predictions, observations) / var(observations)
+
+- **MSD Decomposition (MSDdec)**: Gauche decomposition of Mean Square Deviation
+  - Components returned: MSD, Systematic Bias (SB), Non-uniformity (NU), Lack of Correlation (LC)
+  - Relationship: MSD = SB + NU + LC
+  - Use this to analyze how each component contributes to the overall MSD
 
 - **Uncertainty at 95% (U95)**: 95% uncertainty interval
   - Range: [0, ∞)

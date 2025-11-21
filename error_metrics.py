@@ -781,6 +781,48 @@ class ErrorMetrics:
                                np.abs(self.observations - self.obs_mean)) ** 2)
         return 1 - (numerator / denominator)
 
+    @MetricRegistry.register("Refined Index of Agreement", "WIAr", "Refined Index of Agreement (Willmott et al. 2012)")
+    def refined_index_of_agreement(self) -> float:
+        """
+        Calculate Refined Index of Agreement (dr) by Willmott et al. (2012).
+        
+        Reference: Willmott, C.J., Robeson, S.M. and Matsuura, K. (2012). 
+        A refined index of model performance. International Journal of climatology, 
+        32(13), pp.2088-2094. doi:10.1002/joc.2419
+        
+        In contrast to the original Index of Agreement (d), which ranges from 0 to 1.0,
+        the Refined Index of Agreement (dr) is bounded by -1.0 and 1.0. The closer to 1
+        the better the performance of the model.
+        
+        Formula:
+            A = sum(|predictions - observations|)
+            B = c * sum(|observations - mean_obs|)  where c = 2
+            if A <= B: dr = 1 - A / B
+            else: dr = 1 - B / A
+        
+        Range: [-1.0, 1.0]
+        Perfect score: 1.0
+        
+        Returns:
+            float: Refined Index of Agreement (dr)
+        """
+        # Mean of observed values
+        Om = self.obs_mean
+        
+        # Constant 'c' value
+        c = 2
+        
+        # Components of the formula
+        A = bn.nansum(np.abs(self.predictions - self.observations))
+        B = c * bn.nansum(np.abs(self.observations - Om))
+        
+        if A <= B:
+            dr = 1 - A / B
+        else:
+            dr = 1 - B / A
+        
+        return dr
+
     @MetricRegistry.register("Legates Coefficient of Efficiency", "LCE", "Legates Coefficient of Efficiency")
     def legates_coefficient_of_efficiency(self) -> float:
         """Calculate Legates coefficient of efficiency."""

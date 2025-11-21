@@ -183,10 +183,21 @@ all_metrics = metrics.all_metrics()
   - Advantage: Provides a more balanced and symmetric evaluation by considering both regression directions
   - Reference: "A rebalanced performance criterion for hydrological model calibration" (Lee & Choi 2022)
 
-- **Willmott's Index of Agreement (WIA)**: Measure of agreement
+- **Willmott's Index of Agreement (WIA)**: Measure of agreement (original version)
   - Range: [0, 1]
   - Perfect score: 1
   - Formula: 1 - sum((predictions - observations)²) / sum((|predictions - mean(obs)| + |observations - mean(obs)|)²)
+
+- **Refined Index of Agreement (dr)**: Refined version by Willmott et al. (2012)
+  - Range: [-1.0, 1.0]
+  - Perfect score: 1.0
+  - Formula: 
+    - A = sum(|predictions - observations|)
+    - B = 2 * sum(|observations - mean_obs|)
+    - if A ≤ B: dr = 1 - A / B
+    - else: dr = 1 - B / A
+  - Advantage: More rationally related to model accuracy, uses absolute differences instead of squared differences
+  - Reference: Willmott, C.J., Robeson, S.M. and Matsuura, K. (2012). A refined index of model performance. International Journal of climatology, 32(13), pp.2088-2094. doi:10.1002/joc.2419
 
 - **Legates Coefficient of Efficiency (LCE)**: Modified efficiency measure
   - Range: (-∞, 1]

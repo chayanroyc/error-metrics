@@ -212,6 +212,12 @@ def test_efficiency_metrics(error_metrics):
     assert lce <= 1
     
     assert np.isclose(error_metrics.willmotts_index_of_agreement(), 0.993)
+    
+    # Test Refined Index of Agreement (Willmott et al. 2012)
+    dr = error_metrics.refined_index_of_agreement()
+    assert not np.isnan(dr)
+    # dr should be in range [-1, 1]
+    assert -1.0 <= dr <= 1.0
 
 def test_distribution_metrics(error_metrics):
     # Test distribution-based metrics

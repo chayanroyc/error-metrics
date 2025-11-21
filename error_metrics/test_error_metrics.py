@@ -158,6 +158,59 @@ def test_efficiency_metrics(error_metrics):
     assert np.isclose(r, 0.993383264459765)
     assert np.isclose(alpha, 0.9965942002640792)
     assert np.isclose(beta, 1.0133333333333334)
+    
+    # Test Modified KGE (2012 version)
+    kge2012, r2012, alpha2012, beta2012 = error_metrics.modified_kling_gupta_efficiency()
+    assert np.isclose(r2012, 0.993383264459765)  # r should be the same
+    assert np.isclose(beta2012, 1.0133333333333334)  # beta should be the same
+    # alpha should be different (CV ratio vs std ratio)
+    assert not np.isclose(alpha2012, alpha)  # alpha should differ
+    assert not np.isnan(kge2012)
+    assert not np.isnan(alpha2012)
+    
+    # Test KGE'' (Tang et al. 2021)
+    kgedp, rdp, alphadp, beta_ndp = error_metrics.kling_gupta_efficiency_double_prime()
+    assert np.isclose(rdp, 0.993383264459765)  # r should be the same
+    assert np.isclose(alphadp, 0.9965942002640792)  # alpha should be same as 2009 version (std ratio)
+    # beta_n should be different (normalized bias vs mean ratio)
+    assert not np.isclose(beta_ndp, beta)  # beta_n should differ from beta
+    assert not np.isnan(kgedp)
+    assert not np.isnan(beta_ndp)
+    
+    # Test Diagnostic Efficiency (Schwemmle et al. 2021)
+    de, r_de, b_area, b_rel_mean = error_metrics.diagnostic_efficiency()
+    assert np.isclose(r_de, 0.993383264459765)  # r should be the same (correlation on original time series)
+    # DE is calculated on Flow Duration Curve (sorted data), so components will differ
+    assert not np.isnan(de)
+    assert not np.isnan(b_area)
+    assert not np.isnan(b_rel_mean)
+    # DE should be >= 0 (lower is better, 0 is perfect)
+    assert de >= 0
+    
+    # Test Liu Model Efficiency (Liu 2020)
+    lme, r_lme, alpha_lme, beta_lme, slope_term = error_metrics.liu_model_efficiency()
+    assert np.isclose(r_lme, 0.993383264459765)  # r should be the same
+    assert np.isclose(alpha_lme, 0.9965942002640792)  # alpha should be same as KGE 2009 (std ratio)
+    assert np.isclose(beta_lme, 1.0133333333333334)  # beta should be same as KGE
+    # slope_term should be r * alpha
+    assert np.isclose(slope_term, r_lme * alpha_lme)
+    assert not np.isnan(lme)
+    # LME should be <= 1 (higher is better, 1 is perfect)
+    assert lme <= 1
+    
+    # Test Least-squares Combined Efficiency (Lee & Choi 2022)
+    lce, r_lce, alpha_lce, beta_lce, slope_1, slope_2 = error_metrics.least_squares_combined_efficiency()
+    assert np.isclose(r_lce, 0.993383264459765)  # r should be the same
+    assert np.isclose(alpha_lce, 0.9965942002640792)  # alpha should be same as KGE 2009 (std ratio)
+    assert np.isclose(beta_lce, 1.0133333333333334)  # beta should be same as KGE
+    # slope_1 should be r * alpha
+    assert np.isclose(slope_1, r_lce * alpha_lce)
+    # slope_2 should be r / alpha
+    assert np.isclose(slope_2, r_lce / alpha_lce)
+    assert not np.isnan(lce)
+    # LCE should be <= 1 (higher is better, 1 is perfect)
+    assert lce <= 1
+    
     assert np.isclose(error_metrics.willmotts_index_of_agreement(), 0.993)
 
 def test_distribution_metrics(error_metrics):

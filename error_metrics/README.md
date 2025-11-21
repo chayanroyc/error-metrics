@@ -127,10 +127,61 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 1
   - Formula: 1 - sum((predictions - observations)²) / sum((observations - mean(observations))²)
 
-- **Kling-Gupta Efficiency (KGE)**: Modified efficiency measure
+- **Kling-Gupta Efficiency (KGE)**: Original efficiency measure (2009 version)
   - Range: (-∞, 1]
   - Perfect score: 1
-  - Components: correlation, variability ratio, and mean ratio
+  - Components: correlation (r), variability ratio (alpha = std_pred/std_obs), and mean ratio (beta)
+  - Formula: KGE = 1 - √((r-1)² + (α-1)² + (β-1)²)
+
+- **Modified Kling-Gupta Efficiency (KGE2012)**: Modified efficiency measure (2012 version)
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Components: correlation (r), variability ratio (alpha = CV_pred/CV_obs), and mean ratio (beta)
+  - Formula: KGE = 1 - √((r-1)² + (α-1)² + (β-1)²)
+  - Difference from 2009 version: alpha uses coefficient of variation (CV) ratio instead of standard deviation ratio
+
+- **Kling-Gupta Efficiency Double Prime (KGEdp)**: KGE'' variant by Tang et al. (2021)
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Components: correlation (r), variability ratio (alpha = std_pred/std_obs), and normalized bias (beta_n)
+  - Formula: KGE'' = 1 - √((r-1)² + (α-1)² + β_n²)
+  - beta_n = (mean_pred - mean_obs) / std_obs (normalized bias, not a ratio)
+  - Advantage: More robust when mean values are close to zero, as it uses normalized bias instead of mean ratio
+
+- **Diagnostic Efficiency (DE)**: Diagnostic efficiency by Schwemmle et al. (2021)
+  - Range: [0, +∞)
+  - Perfect score: 0 (lower is better, unlike efficiency metrics where higher is better)
+  - Components: correlation (r), dynamic error (B_area), and constant error (B_rel_mean)
+  - Formula: DE = √(B_rel_mean² + B_area² + (r-1)²)
+  - Decomposes errors into three types calculated on Flow Duration Curve (FDC):
+    - **Constant Error (B_rel_mean)**: Mean relative bias on FDC - systematic bias
+    - **Dynamic Error (B_area)**: Mean absolute residual bias after removing constant error - variability discrepancies
+    - **Timing Error (r)**: Pearson correlation on original time series - temporal misalignments
+  - Advantage: Provides diagnostic insights into which type of error dominates model performance
+  - Note: Components are calculated on sorted (descending) data for FDC analysis, except correlation which uses original time series
+  - Reference: https://doi.org/10.5194/hess-25-2187-2021
+
+- **Liu Model Efficiency (LME)**: Performance criterion by Liu (2020)
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Components: correlation (r), variability ratio (alpha), bias ratio (beta), and slope term (r*alpha)
+  - Formula: LME = 1 - √((r*α - 1)² + (β - 1)²)
+  - Key difference from KGE: Uses combined term (r*alpha) instead of separate r and alpha terms
+  - The slope_term (r*alpha) represents the regression slope and combines correlation and variability
+  - Advantage: Provides a more integrated assessment by combining correlation and variability into a single term
+  - Reference: https://www.sciencedirect.com/science/article/pii/S0022169420309483
+
+- **Least-squares Combined Efficiency (LCE)**: Performance criterion by Lee & Choi (2022)
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Components: correlation (r), variability ratio (alpha), bias ratio (beta), and two slope terms
+  - Formula: LCE = 1 - √((r*α - 1)² + (r/α - 1)² + (β - 1)²)
+  - Slope terms:
+    - **slope_1 (r*alpha)**: Sim vs Obs slope (forward regression)
+    - **slope_2 (r/alpha)**: Obs vs Sim slope (inverse regression)
+  - Key difference from LME: Includes both forward and inverse slope terms, making it symmetric
+  - Advantage: Provides a more balanced and symmetric evaluation by considering both regression directions
+  - Reference: "A rebalanced performance criterion for hydrological model calibration" (Lee & Choi 2022)
 
 - **Willmott's Index of Agreement (WIA)**: Measure of agreement
   - Range: [0, 1]
@@ -419,7 +470,9 @@ The library is designed to be easily extensible. Here's how to add a new metric:
 2. Decorate it with `@MetricRegistry.register`
 3. Use the class's pre-processed data attributes
 
-Here's an example of adding a new metric:
+Here are examples of adding new metrics:
+
+### Example 1: Simple Metric (Returns Single Value)
 
 ```python
 @MetricRegistry.register("Normalized Absolute Error", "NAE", "Normalized Absolute Error")
@@ -435,6 +488,58 @@ def normalized_absolute_error(self) -> float:
     """
     nae = np.abs(self.diff) / (0.5 * (self.predictions + self.observations))
     return bn.nanmean(nae)
+```
+
+### Example 2: Metric Returning Tuple (Multiple Components)
+
+For metrics that return multiple components (like KGE, LME, LCE, DE), use a tuple return type:
+
+```python
+from typing import Tuple
+
+@MetricRegistry.register("Example Efficiency Metric", "EEM", "Example Efficiency Metric")
+def example_efficiency_metric(self) -> Tuple[float, float, float, float]:
+    """
+    Calculate an example efficiency metric with multiple components.
+    
+    Formula:
+        r = Pearson correlation coefficient
+        alpha = std(predictions) / std(observations)
+        beta = mean(predictions) / mean(observations)
+        EEM = 1 - sqrt((r-1)² + (alpha-1)² + (beta-1)²)
+    
+    Returns:
+        Tuple[float, float, float, float]: (EEM value, r component, alpha component, beta component)
+    """
+    std_obs = bn.nanstd(self.observations)
+    std_pred = bn.nanstd(self.predictions)
+    r = np.corrcoef(self.observations, self.predictions)[0, 1]
+    alpha = std_pred / std_obs
+    beta = self.pred_mean / self.obs_mean
+    eem = 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
+    return eem, r, alpha, beta
+```
+
+### Example 3: Metric with Parameters
+
+For metrics that require additional parameters:
+
+```python
+@MetricRegistry.register("Parameterized Metric", "PM", "Parameterized Metric")
+def parameterized_metric(self, threshold: float = 0.1) -> float:
+    """
+    Calculate a parameterized metric with an optional threshold.
+    
+    Args:
+        threshold: Threshold value for the calculation (default: 0.1)
+    
+    Returns:
+        float: Parameterized metric value
+    """
+    # Note: Parameters are not part of the registry, so this metric
+    # should be called directly: metrics.parameterized_metric(threshold=0.2)
+    # It won't work with get_metrics(['PM']) if parameters are needed
+    return bn.nanmean(np.abs(self.diff) / (self.observations + threshold))
 ```
 
 Key points when adding new metrics:
@@ -468,6 +573,17 @@ After adding a new metric, it will be automatically available through:
 - `get_metrics()`: `metrics.get_metrics(['YOUR_ABBR'])`
 - `all_metrics()`: Will include your new metric
 - `print_abbreviations()`: Will show your metric's abbreviation
+
+**Note for tuple-returning metrics**: When using `get_metrics()`, tuple values are automatically rounded. To access individual components, call the method directly:
+
+```python
+# For tuple-returning metrics
+kge, r, alpha, beta = metrics.kling_gupta_efficiency()
+
+# Or get all components via get_metrics (returns tuple)
+results = metrics.get_metrics(['KGE'])
+kge_tuple = results['KGE']  # This will be a tuple
+```
 
 ## Contributing
 

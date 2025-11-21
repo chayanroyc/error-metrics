@@ -498,9 +498,17 @@ class ErrorMetrics:
         # Calculate RSE
         return np.sqrt(ss_res / df)
 
-    @MetricRegistry.register("Kling-Gupta Efficiency", "KGE", "Kling-Gupta Efficiency")
+    @MetricRegistry.register("Kling-Gupta Efficiency", "KGE", "Kling-Gupta Efficiency (2009 version)")
     def kling_gupta_efficiency(self) -> Tuple[float, float, float, float]:
-        """Calculate Kling-Gupta efficiency and its components."""
+        """
+        Calculate Kling-Gupta efficiency (2009 version) and its components.
+        
+        This is the original formulation from Kling et al. (2009) where alpha is the
+        ratio of standard deviations.
+        
+        Returns:
+            Tuple[float, float, float, float]: (KGE value, r component, alpha component, beta component)
+        """
         std_obs = bn.nanstd(self.observations)
         std_pred = bn.nanstd(self.predictions)
         r = np.corrcoef(self.observations, self.predictions)[0, 1]
@@ -508,6 +516,262 @@ class ErrorMetrics:
         beta = self.pred_mean / self.obs_mean
         kge = 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
         return kge, r, alpha, beta
+
+    @MetricRegistry.register("Modified Kling-Gupta Efficiency", "KGE2012", "Kling-Gupta Efficiency (2012 version)")
+    def modified_kling_gupta_efficiency(self) -> Tuple[float, float, float, float]:
+        """
+        Calculate Modified Kling-Gupta efficiency (2012 version) and its components.
+        https://doi.org/10.1016/j.jhydrol.2012.01.011
+        
+        This is the modified formulation from Gupta et al. (2012) where alpha is the
+        ratio of coefficients of variation (CV) instead of standard deviations.
+        
+        Formula:
+            r = Pearson correlation coefficient
+            alpha = CV(predictions) / CV(observations) = (std_pred / mean_pred) / (std_obs / mean_obs)
+            beta = mean(predictions) / mean(observations)
+            KGE = 1 - sqrt((r - 1)² + (alpha - 1)² + (beta - 1)²)
+        
+        Returns:
+            Tuple[float, float, float, float]: (KGE value, r component, alpha component, beta component)
+        """
+        std_obs = bn.nanstd(self.observations)
+        std_pred = bn.nanstd(self.predictions)
+        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        # Alpha is ratio of coefficients of variation (CV)
+        cv_pred = std_pred / self.pred_mean
+        cv_obs = std_obs / self.obs_mean
+        alpha = cv_pred / cv_obs
+        beta = self.pred_mean / self.obs_mean
+        kge = 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
+        return kge, r, alpha, beta
+
+    @MetricRegistry.register("Kling-Gupta Efficiency Double Prime", "KGEdp", "Kling-Gupta Efficiency (Tang et al. 2021)")
+    def kling_gupta_efficiency_double_prime(self) -> Tuple[float, float, float, float]:
+        """
+        Calculate Kling-Gupta Efficiency double prime (KGE'') by Tang et al. (2021).
+        https://journals.ametsoc.org/view/journals/clim/34/16/JCLI-D-21-0067.1.xml
+        
+        This variant uses a normalized bias ratio instead of the mean ratio, which makes
+        it more robust when mean values are close to zero.
+        
+        Formula:
+            r = Pearson correlation coefficient
+            alpha = std(predictions) / std(observations)
+            beta_n = (mean(predictions) - mean(observations)) / std(observations)
+            KGE'' = 1 - sqrt((r - 1)² + (alpha - 1)² + beta_n²)
+        
+        Note: beta_n is squared directly (not (beta_n - 1)²) because it's a normalized
+        difference rather than a ratio.
+        
+        Returns:
+            Tuple[float, float, float, float]: (KGE'' value, r component, alpha component, beta_n component)
+        """
+        std_obs = bn.nanstd(self.observations)
+        std_pred = bn.nanstd(self.predictions)
+        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        alpha = std_pred / std_obs
+        # Normalized bias: (mean_pred - mean_obs) / std_obs
+        beta_n = (self.pred_mean - self.obs_mean) / std_obs
+        # Note: beta_n is squared directly, not (beta_n - 1)²
+        kge_dp = 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + beta_n ** 2)
+        return kge_dp, r, alpha, beta_n
+
+    @MetricRegistry.register("Diagnostic Efficiency", "DE", "Diagnostic Efficiency (Schwemmle et al. 2021)")
+    def diagnostic_efficiency(self) -> Tuple[float, float, float, float]:
+        """
+        Calculate Diagnostic Efficiency (DE) by Schwemmle et al. (2021).
+        https://doi.org/10.5194/hess-25-2187-2021
+        
+        DE decomposes model errors into three distinct components to provide diagnostic
+        insights into model performance:
+        
+        1. Constant Error (B_rel_mean): Systematic bias calculated on Flow Duration Curve
+        2. Dynamic Error (B_area): Variability discrepancies after removing constant error
+        3. Timing Error (r): Temporal misalignments via correlation on original time series
+        
+        Formula:
+            DE = sqrt(B_rel_mean² + B_area² + (r - 1)²)
+        
+        Where:
+            - r: Pearson correlation coefficient on original (unsorted) time series
+            - B_rel_mean: Mean relative bias on Flow Duration Curve (sorted descending)
+            - B_area: Mean absolute residual bias after removing constant error
+        
+        Note: Lower values are better, with 0 being perfect. This is different from
+        efficiency metrics like KGE where higher values are better.
+        
+        The three components can be visualized in diagnostic polar plots to identify
+        which type of error dominates the model performance.
+        
+        Returns:
+            Tuple[float, float, float, float]: (DE value, r component, B_area component, B_rel_mean component)
+        """
+        # --- 1. Timing Error (r) ---
+        # Calculated on the original (unsorted) time series to capture temporal match
+        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        
+        # --- Pre-processing for Flow Duration Curve (FDC) terms ---
+        # Sort both arrays in descending order to simulate the Flow Duration Curve
+        # This aligns values by exceedance probability rather than time
+        obs_sorted = np.sort(self.observations)[::-1]
+        sim_sorted = np.sort(self.predictions)[::-1]
+        
+        # Handle potential division by zero for ephemeral streams
+        # Mask indices where observation is 0 to avoid infinity
+        valid_indices = obs_sorted > 0
+        if not np.any(valid_indices):
+            # If all observations are zero, return NaN for FDC-based components
+            return np.nan, r, np.nan, np.nan
+        
+        obs_fdc = obs_sorted[valid_indices]
+        sim_fdc = sim_sorted[valid_indices]
+        
+        # --- 2. Constant Error (B_rel_mean) ---
+        # B_rel is the relative bias at each exceedance probability i
+        # B_rel(i) = (Qsim(i) - Qobs(i)) / Qobs(i)
+        b_rel = (sim_fdc - obs_fdc) / obs_fdc
+        
+        # B_rel_mean is the arithmetic mean of the relative bias
+        b_rel_mean = bn.nanmean(b_rel)
+        
+        # --- 3. Dynamic Error (B_area) ---
+        # B_res is the residual bias after removing the constant error
+        # B_res(i) = B_rel(i) - B_rel_mean
+        b_res = b_rel - b_rel_mean
+        
+        # |B_area| is the integral of the absolute residual bias over the domain [0, 1]
+        # Since we have discrete data points uniformly spaced in probability,
+        # the integral is equivalent to the mean of the absolute values
+        b_area = bn.nanmean(np.abs(b_res))
+        
+        # --- Final Calculation ---
+        # DE = sqrt(B_rel_mean² + B_area² + (r - 1)²)
+        # Note: Lower is better, 0 is perfect (unlike KGE where higher is better)
+        de = np.sqrt(b_rel_mean ** 2 + b_area ** 2 + (r - 1) ** 2)
+        
+        return de, r, b_area, b_rel_mean
+
+    @MetricRegistry.register("Liu Model Efficiency", "LME", "Liu Model Efficiency (Liu 2020)")
+    def liu_model_efficiency(self) -> Tuple[float, float, float, float, float]:
+        """
+        Calculate Liu Model Efficiency (LME) by Liu (2020).
+        https://www.sciencedirect.com/science/article/pii/S0022169420309483
+        
+        LME is a performance criterion that combines correlation and variability into
+        a single slope term, providing a more integrated assessment of model performance.
+        
+        Formula:
+            r = Pearson correlation coefficient
+            alpha = std(predictions) / std(observations)  (variability ratio)
+            beta = mean(predictions) / mean(observations)  (bias ratio)
+            slope_term = r * alpha  (regression slope)
+            LME = 1 - sqrt((r*alpha - 1)² + (beta - 1)²)
+        
+        The key difference from KGE is that LME uses the combined term (r*alpha)
+        instead of separate r and alpha terms. This slope_term represents the slope
+        of the regression line and combines both correlation and variability.
+        
+        Range: (-∞, 1]
+        Perfect score: 1
+        
+        Returns:
+            Tuple[float, float, float, float, float]: (LME value, r component, alpha component, beta component, slope_term component)
+        """
+        std_obs = bn.nanstd(self.observations)
+        std_pred = bn.nanstd(self.predictions)
+        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        
+        # Beta (Bias ratio)
+        if self.obs_mean == 0:
+            # If both are 0, beta is 1 (perfect). If only obs is 0, beta is inf.
+            beta = 1.0 if self.pred_mean == 0 else np.inf
+        else:
+            beta = self.pred_mean / self.obs_mean
+        
+        # Alpha (Variability ratio)
+        if std_obs == 0:
+            alpha = 1.0 if std_pred == 0 else np.inf
+        else:
+            alpha = std_pred / std_obs
+        
+        # Slope Term (r * alpha)
+        # This represents the slope of the regression line (sim = k * obs + c)
+        slope_term = r * alpha
+        
+        # LME Calculation
+        # LME = 1 - sqrt((r*alpha - 1)² + (beta - 1)²)
+        # We use Euclidean distance of the components from the ideal point (1, 1)
+        euclidean_dist = np.sqrt((slope_term - 1) ** 2 + (beta - 1) ** 2)
+        lme = 1 - euclidean_dist
+        
+        return lme, r, alpha, beta, slope_term
+
+    @MetricRegistry.register("Least-squares Combined Efficiency", "LCE", "Least-squares Combined Efficiency (Lee & Choi 2022)")
+    def least_squares_combined_efficiency(self) -> Tuple[float, float, float, float, float, float]:
+        """
+        Calculate Least-squares Combined Efficiency (LCE) by Lee & Choi (2022).
+        
+        LCE is a rebalanced performance criterion that considers both forward and
+        inverse regression slopes, providing a more symmetric evaluation of model performance.
+        
+        Formula:
+            r = Pearson correlation coefficient
+            alpha = std(predictions) / std(observations)  (variability ratio)
+            beta = mean(predictions) / mean(observations)  (bias ratio)
+            slope_1 = r * alpha  (Sim vs Obs slope)
+            slope_2 = r / alpha  (Obs vs Sim slope term)
+            LCE = 1 - sqrt((r*alpha - 1)² + (r/alpha - 1)² + (beta - 1)²)
+        
+        The key difference from LME is that LCE includes both forward (r*alpha) and
+        inverse (r/alpha) slope terms, making it symmetric and more balanced.
+        
+        Range: (-∞, 1]
+        Perfect score: 1
+        
+        Returns:
+            Tuple[float, float, float, float, float, float]: (LCE value, r component, alpha component, beta component, slope_1 component, slope_2 component)
+        """
+        std_obs = bn.nanstd(self.observations)
+        std_pred = bn.nanstd(self.predictions)
+        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        
+        # Beta (Bias ratio)
+        if self.obs_mean == 0:
+            beta = 1.0 if self.pred_mean == 0 else np.inf
+        else:
+            beta = self.pred_mean / self.obs_mean
+        
+        # Alpha (Variability ratio)
+        if std_obs == 0:
+            alpha = 1.0 if std_pred == 0 else np.inf
+        else:
+            alpha = std_pred / std_obs
+        
+        # Slope Terms
+        slope_1 = r * alpha  # Sim vs Obs slope
+        
+        # Handle division by zero for slope_2
+        if alpha == 0:
+            # If alpha is 0 (flat simulation), slope_2 is undefined/infinite
+            slope_2 = np.inf
+        else:
+            slope_2 = r / alpha  # Obs vs Sim slope term
+        
+        # LCE Calculation
+        # LCE = 1 - Euclidean distance of components from (1, 1, 1)
+        # If any component is inf, LCE is -inf
+        if np.isinf(slope_2) or np.isinf(beta) or np.isinf(alpha):
+            lce = -np.inf
+        else:
+            euclidean_dist = np.sqrt(
+                (slope_1 - 1) ** 2 +
+                (slope_2 - 1) ** 2 +
+                (beta - 1) ** 2
+            )
+            lce = 1 - euclidean_dist
+        
+        return lce, r, alpha, beta, slope_1, slope_2
 
     @MetricRegistry.register("Willmott's Index of Agreement", "WIA", "Willmott's Index of Agreement")
     def willmotts_index_of_agreement(self) -> float:

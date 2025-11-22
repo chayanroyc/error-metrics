@@ -594,62 +594,49 @@ class ErrorMetrics:
         Formula:
             DE = sqrt(B_rel_mean² + B_area² + (r - 1)²)
         
-        Where:
-            - r: Pearson correlation coefficient on original (unsorted) time series
-            - B_rel_mean: Mean relative bias on Flow Duration Curve (sorted descending)
-            - B_area: Mean absolute residual bias after removing constant error
-        
-        Note: Lower values are better, with 0 being perfect. This is different from
-        efficiency metrics like KGE where higher values are better.
-        
-        The three components can be visualized in diagnostic polar plots to identify
-        which type of error dominates the model performance.
+        Note: Lower values are better, with 0 being perfect.
         
         Returns:
-            Tuple[float, float, float, float]: (DE value, r component, B_area component, B_rel_mean component)
+            Tuple[float, float, float, float]: (DE, r, B_area, B_rel_mean)
         """
+        obs = self.observations
+        sim = self.predictions
+        
         # --- 1. Timing Error (r) ---
-        # Calculated on the original (unsorted) time series to capture temporal match
-        r = np.corrcoef(self.observations, self.predictions)[0, 1]
+        # Check for constant arrays (zero variance)
+        if np.std(obs) == 0 or np.std(sim) == 0:
+            r = np.nan
+        else:
+            r = np.corrcoef(obs, sim)[0, 1]
         
-        # --- Pre-processing for Flow Duration Curve (FDC) terms ---
-        # Sort both arrays in descending order to simulate the Flow Duration Curve
-        # This aligns values by exceedance probability rather than time
-        obs_sorted = np.sort(self.observations)[::-1]
-        sim_sorted = np.sort(self.predictions)[::-1]
-        
-        # Handle potential division by zero for ephemeral streams
-        # Mask indices where observation is 0 to avoid infinity
-        valid_indices = obs_sorted > 0
-        if not np.any(valid_indices):
-            # If all observations are zero, return NaN for FDC-based components
+        # --- Pre-processing: Remove zeros before FDC construction ---
+        valid = obs > 0
+        if np.sum(valid) < 2:
             return np.nan, r, np.nan, np.nan
         
-        obs_fdc = obs_sorted[valid_indices]
-        sim_fdc = sim_sorted[valid_indices]
+        obs_valid = obs[valid]
+        sim_valid = sim[valid]
+        
+        # Sort independently in descending order for FDC
+        obs_fdc = np.sort(obs_valid)[::-1]
+        sim_fdc = np.sort(sim_valid)[::-1]
         
         # --- 2. Constant Error (B_rel_mean) ---
-        # B_rel is the relative bias at each exceedance probability i
         # B_rel(i) = (Qsim(i) - Qobs(i)) / Qobs(i)
         b_rel = (sim_fdc - obs_fdc) / obs_fdc
-        
-        # B_rel_mean is the arithmetic mean of the relative bias
-        b_rel_mean = bn.nanmean(b_rel)
+        b_rel_mean = np.mean(b_rel)
         
         # --- 3. Dynamic Error (B_area) ---
-        # B_res is the residual bias after removing the constant error
-        # B_res(i) = B_rel(i) - B_rel_mean
+        # Residual bias after removing constant error
         b_res = b_rel - b_rel_mean
         
-        # |B_area| is the integral of the absolute residual bias over the domain [0, 1]
-        # Since we have discrete data points uniformly spaced in probability,
-        # the integral is equivalent to the mean of the absolute values
-        b_area = bn.nanmean(np.abs(b_res))
+        # Integrate using trapezoidal rule over normalized domain [0, 1]
+        n = len(b_res)
+        exceedance_prob = np.linspace(0, 1, n)
+        b_area = np.trapz(np.abs(b_res), exceedance_prob)
         
         # --- Final Calculation ---
-        # DE = sqrt(B_rel_mean² + B_area² + (r - 1)²)
-        # Note: Lower is better, 0 is perfect (unlike KGE where higher is better)
-        de = np.sqrt(b_rel_mean ** 2 + b_area ** 2 + (r - 1) ** 2)
+        de = np.sqrt(b_rel_mean**2 + b_area**2 + (r - 1)**2)
         
         return de, r, b_area, b_rel_mean
 

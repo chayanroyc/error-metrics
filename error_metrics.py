@@ -636,7 +636,7 @@ class ErrorMetrics:
         b_area = np.trapz(np.abs(b_res), exceedance_prob)
         
         # --- Final Calculation ---
-        de = np.sqrt(b_rel_mean**2 + b_area**2 + (r - 1)**2)
+        de = 1 - np.sqrt(b_rel_mean**2 + b_area**2 + (r - 1)**2)
         
         return de, r, b_area, b_rel_mean
 

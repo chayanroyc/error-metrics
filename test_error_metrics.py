@@ -184,8 +184,8 @@ def test_efficiency_metrics(error_metrics):
     assert not np.isnan(de)
     assert not np.isnan(b_area)
     assert not np.isnan(b_rel_mean)
-    # DE should be >= 0 (lower is better, 0 is perfect)
-    assert de >= 0
+    # DE should be <= 1 (higher is better, 1 is perfect)
+    assert de <= 1
     
     # Test Liu Model Efficiency (Liu 2020)
     lme, r_lme, alpha_lme, beta_lme, slope_term = error_metrics.liu_model_efficiency()

@@ -168,10 +168,10 @@ all_metrics = metrics.all_metrics()
   - Advantage: More robust when mean values are close to zero, as it uses normalized bias instead of mean ratio
 
 - **Diagnostic Efficiency (DE)**: Diagnostic efficiency by Schwemmle et al. (2021)
-  - Range: [0, +∞)
-  - Perfect score: 0 (lower is better, unlike efficiency metrics where higher is better)
+  - Range: (-∞, 1]
+  - Perfect score: 1 (higher is better)
   - Components: correlation (r), dynamic error (B_area), and constant error (B_rel_mean)
-  - Formula: DE = √(B_rel_mean² + B_area² + (r-1)²)
+  - Formula: DE = 1 - √(B_rel_mean² + B_area² + (r-1)²)
   - Decomposes errors into three types calculated on Flow Duration Curve (FDC):
     - **Constant Error (B_rel_mean)**: Mean relative bias on FDC - systematic bias
     - **Dynamic Error (B_area)**: Mean absolute residual bias after removing constant error - variability discrepancies

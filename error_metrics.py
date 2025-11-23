@@ -815,7 +815,7 @@ class ErrorMetrics:
     def legates_coefficient_of_efficiency(self) -> float:
         """Calculate Legates coefficient of efficiency."""
         numerator = bn.nansum(np.abs(self.predictions - self.observations))
-        denominator = bn.nansum(np.abs(self.observations))
+        denominator = bn.nansum(np.abs(self.observations - self.obs_mean))
         return 1 - (numerator / denominator)
 
     @MetricRegistry.register("Kolmogorov-Smirnov Test Integral", "KSI", "Measure of distribution similarity")

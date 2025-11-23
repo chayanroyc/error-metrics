@@ -221,7 +221,7 @@ all_metrics = metrics.all_metrics()
 - **Legates Coefficient of Efficiency (LCE)**: Modified efficiency measure
   - Range: (-∞, 1]
   - Perfect score: 1
-  - Formula: 1 - sum(|predictions - observations|) / sum(|observations|)
+  - Formula: 1 - sum(|predictions - observations|) / sum(|observations - mean_obs|)
 
 ### Distribution Metrics
 

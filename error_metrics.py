@@ -902,8 +902,20 @@ class ErrorMetrics:
 
     @MetricRegistry.register("Combined Performance Index", "CPI", "Overall performance measure")
     def cpi(self) -> float:
-        """Calculate Combined Performance Index."""
-        return 1 - (self.mean_bias() / self.obs_mean) ** 2
+        """
+        Calculate Combined Performance Index.
+        
+        Formula: CPI = (KSI + OVER + 2*RMSE) / 4
+        
+        Where:
+            KSI: Kolmogorov-Smirnov Test Integral
+            OVER: Over-estimation Metric
+            RMSE: Root Mean Squared Error
+        """
+        ksi_val = self.ksi(normed=False)
+        over_val = self.over_metric(normed=False)
+        rmse_val = self.root_mean_squared_error()
+        return (ksi_val + over_val + 2 * rmse_val) / 4
 
     @MetricRegistry.register("Relative Euclidean Distance", "RED", "Measure of relative distance")
     def red(self) -> float:

@@ -266,9 +266,10 @@ all_metrics = metrics.all_metrics()
 ### Advanced Metrics
 
 - **Combined Performance Index (CPI)**: Overall performance measure
-  - Range: (-∞, 1]
-  - Perfect score: 1
-  - Formula: 1 - (mean_bias / mean_observations)²
+  - Range: [0, +∞)
+  - Perfect score: 0 (lower is better)
+  - Formula: CPI = (KSI + OVER + 2*RMSE) / 4
+  - Components: KSI (Kolmogorov-Smirnov Test Integral), OVER (Over-estimation Metric), and RMSE (Root Mean Squared Error)
 
 - **SMA Regression Metrics (SMA)**: Standard Major Axis regression parameters and error decomposition
   - Outputs: SMA slope/intercept, Mean Lack of Accuracy (MLA), Mean Lack of Precision (MLP), and their percentages

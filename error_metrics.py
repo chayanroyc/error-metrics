@@ -695,12 +695,12 @@ class ErrorMetrics:
         
         return lme, r, alpha, beta, slope_term
 
-    @MetricRegistry.register("Least-squares Combined Efficiency", "LCE", "Least-squares Combined Efficiency (Lee & Choi 2022)")
+    @MetricRegistry.register("Least-squares Combined Efficiency", "LCEf", "Least-squares Combined Efficiency (Lee & Choi 2022)")
     def least_squares_combined_efficiency(self) -> Tuple[float, float, float, float, float, float]:
         """
-        Calculate Least-squares Combined Efficiency (LCE) by Lee & Choi (2022).
+        Calculate Least-squares Combined Efficiency (LCEf) by Lee & Choi (2022).
         
-        LCE is a rebalanced performance criterion that considers both forward and
+        LCEf is a rebalanced performance criterion that considers both forward and
         inverse regression slopes, providing a more symmetric evaluation of model performance.
         
         Formula:
@@ -709,16 +709,16 @@ class ErrorMetrics:
             beta = mean(predictions) / mean(observations)  (bias ratio)
             slope_1 = r * alpha  (Sim vs Obs slope)
             slope_2 = r / alpha  (Obs vs Sim slope term)
-            LCE = 1 - sqrt((r*alpha - 1)² + (r/alpha - 1)² + (beta - 1)²)
+            LCEf = 1 - sqrt((r*alpha - 1)² + (r/alpha - 1)² + (beta - 1)²)
         
-        The key difference from LME is that LCE includes both forward (r*alpha) and
+        The key difference from LME is that LCEf includes both forward (r*alpha) and
         inverse (r/alpha) slope terms, making it symmetric and more balanced.
         
         Range: (-∞, 1]
         Perfect score: 1
         
         Returns:
-            Tuple[float, float, float, float, float, float]: (LCE value, r component, alpha component, beta component, slope_1 component, slope_2 component)
+            Tuple[float, float, float, float, float, float]: (LCEf value, r component, alpha component, beta component, slope_1 component, slope_2 component)
         """
         std_obs = bn.nanstd(self.observations)
         std_pred = bn.nanstd(self.predictions)
@@ -746,20 +746,20 @@ class ErrorMetrics:
         else:
             slope_2 = r / alpha  # Obs vs Sim slope term
         
-        # LCE Calculation
-        # LCE = 1 - Euclidean distance of components from (1, 1, 1)
-        # If any component is inf, LCE is -inf
+        # LCEf Calculation
+        # LCEf  = 1 - Euclidean distance of components from (1, 1, 1)
+        # If any component is inf, LCEf is -inf
         if np.isinf(slope_2) or np.isinf(beta) or np.isinf(alpha):
-            lce = -np.inf
+            lcef = -np.inf
         else:
             euclidean_dist = np.sqrt(
                 (slope_1 - 1) ** 2 +
                 (slope_2 - 1) ** 2 +
                 (beta - 1) ** 2
             )
-            lce = 1 - euclidean_dist
+            lcef = 1 - euclidean_dist
         
-        return lce, r, alpha, beta, slope_1, slope_2
+        return lcef, r, alpha, beta, slope_1, slope_2
 
     @MetricRegistry.register("Willmott's Index of Agreement", "WIA", "Willmott's Index of Agreement")
     def willmotts_index_of_agreement(self) -> float:

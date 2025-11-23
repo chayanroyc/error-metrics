@@ -199,17 +199,17 @@ def test_efficiency_metrics(error_metrics):
     assert lme <= 1
     
     # Test Least-squares Combined Efficiency (Lee & Choi 2022)
-    lce, r_lce, alpha_lce, beta_lce, slope_1, slope_2 = error_metrics.least_squares_combined_efficiency()
-    assert np.isclose(r_lce, 0.993383264459765)  # r should be the same
-    assert np.isclose(alpha_lce, 0.9965942002640792)  # alpha should be same as KGE 2009 (std ratio)
-    assert np.isclose(beta_lce, 1.0133333333333334)  # beta should be same as KGE
+    lcef, r_lcef, alpha_lcef, beta_lcef, slope_1, slope_2 = error_metrics.least_squares_combined_efficiency()
+    assert np.isclose(r_lcef, 0.993383264459765)  # r should be the same
+    assert np.isclose(alpha_lcef, 0.9965942002640792)  # alpha should be same as KGE 2009 (std ratio)
+    assert np.isclose(beta_lcef, 1.0133333333333334)  # beta should be same as KGE
     # slope_1 should be r * alpha
-    assert np.isclose(slope_1, r_lce * alpha_lce)
+    assert np.isclose(slope_1, r_lcef * alpha_lcef)
     # slope_2 should be r / alpha
-    assert np.isclose(slope_2, r_lce / alpha_lce)
-    assert not np.isnan(lce)
-    # LCE should be <= 1 (higher is better, 1 is perfect)
-    assert lce <= 1
+    assert np.isclose(slope_2, r_lcef / alpha_lcef)
+    assert not np.isnan(lcef)
+    # LCEf should be <= 1 (higher is better, 1 is perfect)
+    assert lcef <= 1
     
     assert np.isclose(error_metrics.willmotts_index_of_agreement(), 0.993)
 

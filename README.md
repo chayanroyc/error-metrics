@@ -190,11 +190,11 @@ all_metrics = metrics.all_metrics()
   - Advantage: Provides a more integrated assessment by combining correlation and variability into a single term
   - Reference: https://www.sciencedirect.com/science/article/pii/S0022169420309483
 
-- **Least-squares Combined Efficiency (LCE)**: Performance criterion by Lee & Choi (2022)
+- **Least-squares Combined Efficiency (LCEf)**: Performance criterion by Lee & Choi (2022)
   - Range: (-∞, 1]
   - Perfect score: 1
   - Components: correlation (r), variability ratio (alpha), bias ratio (beta), and two slope terms
-  - Formula: LCE = 1 - √((r*α - 1)² + (r/α - 1)² + (β - 1)²)
+  - Formula: LCEf = 1 - √((r*α - 1)² + (r/α - 1)² + (β - 1)²)
   - Slope terms:
     - **slope_1 (r*alpha)**: Sim vs Obs slope (forward regression)
     - **slope_2 (r/alpha)**: Obs vs Sim slope (inverse regression)
@@ -532,7 +532,7 @@ def normalized_absolute_error(self) -> float:
 
 ### Example 2: Metric Returning Tuple (Multiple Components)
 
-For metrics that return multiple components (like KGE, LME, LCE, DE), use a tuple return type:
+For metrics that return multiple components (like KGE, LME, LCEf, DE), use a tuple return type:
 
 ```python
 from typing import Tuple

@@ -882,14 +882,12 @@ class ErrorMetrics:
         """Calculate Standard Deviation."""
         return bn.nanstd(self.observations)
 
-    @MetricRegistry.register("Mean Square Deviation", "MSD", "Average of squared deviations")
     def msd(self) -> float:
-        """Calculate Mean Square Deviation."""
+        """Calculate Mean Square Deviation. Available through msd_decomposition()."""
         return bn.nanmean(self.diff ** 2)
 
-    @MetricRegistry.register("Systematic Bias", "SB", "Measure of systematic error")
     def sb(self) -> float:
-        """Calculate Systematic Bias."""
+        """Calculate Systematic Bias. Available through msd_decomposition()."""
         return bn.nanmean(self.diff) ** 2
 
     @MetricRegistry.register("Normalized Mean Bias Factor", "NMBF", "Measure of bias factor")
@@ -926,15 +924,13 @@ class ErrorMetrics:
 
         return (Aov_sum / (Aov_sum + Afn_sum + Afp_sum)) * 100
 
-    @MetricRegistry.register("Non-uniformity", "NU", "Measure of non-uniformity")
     def nu(self) -> float:
-        """Calculate Non-uniformity."""
+        """Calculate Non-uniformity. Available through msd_decomposition()."""
         b1, _ = self.linear_regression()
         return (1 - b1) ** 2 * bn.nanmean((self.predictions - bn.nanmean(self.predictions)) ** 2)
 
-    @MetricRegistry.register("Lack of Correlation", "LC", "Measure of correlation deficiency")
     def lc(self) -> float:
-        """Calculate Lack of Correlation."""
+        """Calculate Lack of Correlation. Available through msd_decomposition()."""
         _, r2 = self.linear_regression()
         return (1 - r2) * bn.nanmean((self.observations - bn.nanmean(self.observations)) ** 2)
 

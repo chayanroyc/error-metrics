@@ -333,6 +333,7 @@ all_metrics = metrics.all_metrics()
 - **MSD Decomposition (MSDdec)**: Gauche decomposition of Mean Square Deviation
   - Components returned: MSD, Systematic Bias (SB), Non-uniformity (NU), Lack of Correlation (LC)
   - Relationship: MSD = SB + NU + LC
+  - Note: MSD, SB, NU, and LC are only available through this decomposition method, not as separate registered metrics
   - Use this to analyze how each component contributes to the overall MSD
 
 - **Uncertainty at 95% (U95)**: 95% uncertainty interval
@@ -347,9 +348,9 @@ all_metrics = metrics.all_metrics()
 
 ### Statistical Measures
 
-- **Interquartile Range (IQR)**: Measure of statistical dispersion
+- **Interquartile Range (IQR)**: Measure of statistical dispersion of observations
   - Range: [0, ∞)
-  - Formula: Q3 - Q1 (75th percentile - 25th percentile)
+  - Formula: Q3 - Q1 (75th percentile - 25th percentile of observations)
 
 ### Engineering Metrics
 

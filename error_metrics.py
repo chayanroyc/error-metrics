@@ -8,6 +8,7 @@ from functools import wraps
 import warnings
 from statsmodels.distributions.empirical_distribution import ECDF
 from scipy.spatial.distance import pdist, squareform
+from scipy.stats import skew as scipy_skew, kurtosis as scipy_kurtosis
 
 @dataclass
 class MetricInfo:
@@ -70,6 +71,13 @@ class ErrorMetrics:
         self.sum_ = self.predictions + self.observations
         self.pred_mean = bn.nanmean(self.predictions)
         self.obs_mean = bn.nanmean(self.observations)
+
+    def _normalized_error(self) -> np.ndarray:
+        """Compute normalized error nE = (pred - obs) / max(pred)."""
+        max_pred = np.nanmax(self.predictions) if self.N > 0 else np.nan
+        if np.isnan(max_pred) or np.isclose(max_pred, 0):
+            return np.full_like(self.predictions, np.nan, dtype=float)
+        return (self.predictions - self.observations) / max_pred
 
     def _preprocess_data(self):
         """Remove NaNs and infinities from predictions and observations."""
@@ -881,6 +889,24 @@ class ErrorMetrics:
     def STD(self) -> float:
         """Calculate Standard Deviation."""
         return bn.nanstd(self.observations)
+
+    @MetricRegistry.register("Normalized Error Skewness", "nESkew", "Skewness of normalized error (Correndo et al. 2021)")
+    def normalized_error_skewness(self) -> float:
+        """Calculate skewness of the normalized error."""
+        ne = self._normalized_error()
+        ne = ne[np.isfinite(ne)]
+        if len(ne) < 3:
+            return np.nan
+        return scipy_skew(ne, bias=False)
+
+    @MetricRegistry.register("Normalized Error Kurtosis", "nEKurt", "Kurtosis of normalized error (Correndo et al. 2021)")
+    def normalized_error_kurtosis(self) -> float:
+        """Calculate kurtosis of the normalized error."""
+        ne = self._normalized_error()
+        ne = ne[np.isfinite(ne)]
+        if len(ne) < 4:
+            return np.nan
+        return scipy_kurtosis(ne, fisher=True, bias=False)
 
     def msd(self) -> float:
         """Calculate Mean Square Deviation. Available through msd_decomposition()."""

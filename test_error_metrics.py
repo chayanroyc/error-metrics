@@ -4,6 +4,7 @@ from error_metrics import ErrorMetrics
 import numpy.ma as ma
 import numpy.random as rn
 import bottleneck as bn
+from scipy.stats import skew as scipy_skew, kurtosis as scipy_kurtosis
 
 @pytest.fixture
 def sample_data():
@@ -247,6 +248,15 @@ def test_interquartile_rmse(sample_data):
     pred_flat = np.ones(5)
     em_flat = ErrorMetrics(pred_flat, obs_flat)
     assert np.isinf(em_flat.interquartile_rmse())
+
+def test_normalized_error_skewness_kurtosis(sample_data):
+    obs, pred = sample_data
+    em = ErrorMetrics(pred, obs)
+    ne = (pred - obs) / np.max(pred)
+    expected_skew = scipy_skew(ne, bias=False)
+    expected_kurt = scipy_kurtosis(ne, fisher=True, bias=False)
+    assert np.isclose(em.normalized_error_skewness(), expected_skew)
+    assert np.isclose(em.normalized_error_kurtosis(), expected_kurt)
 
 def test_sma_metrics(sample_data):
     obs, pred = sample_data

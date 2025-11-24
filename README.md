@@ -326,6 +326,16 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: (100 / mean_obs) * sqrt(mean(residual²) - mean(residual)²)
 
+- **Normalized Error Skewness (nESkew)**: Skewness of normalized error (Correndo et al. 2021)
+  - Normalized error: nE = (predictions - observations) / max(predictions)
+  - Measures asymmetry of nE distribution (unbounded)
+  - Perfect score: 0
+
+- **Normalized Error Kurtosis (nEKurt)**: Kurtosis of normalized error (Correndo et al. 2021)
+  - Uses same nE definition as above
+  - Measures tail heaviness (Fisher kurtosis, 0 for normal distribution)
+  - Perfect score: 0
+
 - **Slope of Best-Fit Line (SBF)**: Slope of the best-fit line
   - Range: (-∞, ∞)
   - Perfect score: 1

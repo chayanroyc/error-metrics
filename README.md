@@ -271,6 +271,18 @@ all_metrics = metrics.all_metrics()
   - Formula: CPI = (KSI + OVER + 2*RMSE) / 4
   - Components: KSI (Kolmogorov-Smirnov Test Integral), OVER (Over-estimation Metric), and RMSE (Root Mean Squared Error)
 
+- **Theil's Inequality Coefficient (U2)**: Relative error against observation energy
+  - Range: [0, +∞)
+  - Perfect score: 0
+  - Formula: U2 = RMSE / √(mean(observations²))
+  - Measures deviation relative to observation magnitude
+
+- **Berry-Mielke Index (BM)**: Agreement index from Berry & Mielke (1985)
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Formula: BM = 1 - δ / μ, where δ = (1/n) Σ|pred - obs| and μ = (2/n²) ΣΣ |pred_j - obs_i|
+  - Captures both pairwise and crosswise deviations between predictions and observations
+
 - **SMA Regression Metrics (SMA)**: Standard Major Axis regression parameters and error decomposition
   - Outputs: SMA slope/intercept, Mean Lack of Accuracy (MLA), Mean Lack of Precision (MLP), and their percentages
   - Relationship: MSE = MLA + MLP

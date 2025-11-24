@@ -1132,6 +1132,42 @@ class ErrorMetrics:
         term2 = (3 * (N - 1) ** 2) / ((N - 2) * (N - 3))
         return term1 - term2
 
+    @MetricRegistry.register("Theil's Inequality Coefficient", "U2", "Theil's U2 coefficient")
+    def theils_u2(self) -> float:
+        """
+        Calculate Theil's Inequality Coefficient (U2).
+
+        U2 = RMSE / sqrt(mean(observation^2))
+        """
+        rmse = self.root_mean_squared_error()
+        obs_rms = np.sqrt(bn.nanmean(self.observations ** 2))
+        if obs_rms == 0 or np.isnan(obs_rms):
+            return np.nan
+        return rmse / obs_rms
+
+    @MetricRegistry.register("Berry-Mielke Index", "BM", "Berry & Mielke's agreement score")
+    def berry_mielke_score(self, c: float = 2.0) -> float:
+        """
+        Calculate Berry and Mielke's agreement index.
+
+        delta = n^-1 * Σ |F_i - A_i|
+        mu    = (c / n^2) * Σ Σ |F_j - A_i|
+        R     = 1 - delta / mu
+
+        Args:
+            c: Scaling constant (default=2) balancing numerator and denominator.
+        """
+        if self.N == 0:
+            return np.nan
+
+        delta = bn.nanmean(np.abs(self.predictions - self.observations))
+        pairwise = np.abs(np.subtract.outer(self.predictions, self.observations))
+        mu = (c / (self.N ** 2)) * np.nansum(pairwise)
+
+        if mu == 0 or np.isnan(mu):
+            return np.nan
+        return 1 - (delta / mu)
+
     @MetricRegistry.register("Distance Correlation", "dCor", "Distance correlation (Székely et al. 2007)")
     def distance_correlation(self) -> float:
         """

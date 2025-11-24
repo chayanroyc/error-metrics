@@ -258,6 +258,22 @@ def test_normalized_error_skewness_kurtosis(sample_data):
     assert np.isclose(em.normalized_error_skewness(), expected_skew)
     assert np.isclose(em.normalized_error_kurtosis(), expected_kurt)
 
+def test_theils_u2_and_berry_mielke():
+    obs = np.array([1.0, 2.0])
+    pred = np.array([2.0, 1.0])
+    em = ErrorMetrics(pred, obs)
+
+    rmse = np.sqrt(np.mean((pred - obs) ** 2))
+    obs_rms = np.sqrt(np.mean(obs ** 2))
+    expected_u2 = rmse / obs_rms
+    assert np.isclose(em.theils_u2(), expected_u2)
+
+    delta = np.mean(np.abs(pred - obs))
+    pairwise = np.abs(np.subtract.outer(pred, obs))
+    expected_mu = (2 / (len(obs) ** 2)) * np.sum(pairwise)
+    expected_bm = 1 - delta / expected_mu
+    assert np.isclose(em.berry_mielke_score(), expected_bm)
+
 def test_sma_metrics(sample_data):
     obs, pred = sample_data
     em = ErrorMetrics(pred, obs)

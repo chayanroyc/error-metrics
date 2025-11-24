@@ -2,7 +2,7 @@
 
 import numpy as np
 import bottleneck as bn
-from typing import Dict, List, Tuple, Union, Callable
+from typing import Dict, List, Tuple, Union, Callable, Optional
 from dataclasses import dataclass
 from functools import wraps
 import warnings
@@ -1049,6 +1049,63 @@ class ErrorMetrics:
         pred_trend = np.polyfit(np.arange(len(self.predictions)), self.predictions, 1)[0]
         return 1 - abs(obs_trend - pred_trend) / (abs(obs_trend) + 1e-10)
 
+    @MetricRegistry.register("Normalized Error Skewness", "nESkew", "Skewness of normalized error distribution")
+    def normalized_error_skewness(self) -> float:
+        """
+        Calculate skewness of the normalized error (nE) distribution.
+
+        nE = (prediction - observation) / max(prediction)
+
+        Skewness formula (unbiased):
+            skew = [N / ((N-1)(N-2))] * Σ ((nE_i - mean_nE) / SD)^3
+        """
+        nE = self._normalized_error()
+        if nE is None:
+            return np.nan
+
+        mask = np.isfinite(nE)
+        nE = nE[mask]
+        N = len(nE)
+        if N < 3:
+            return np.nan
+
+        mean_nE = bn.nanmean(nE)
+        sd_nE = bn.nanstd(nE)
+        if np.isclose(sd_nE, 0.0):
+            return 0.0
+
+        z = (nE - mean_nE) / sd_nE
+        return (N / ((N - 1) * (N - 2))) * bn.nansum(z ** 3)
+
+    @MetricRegistry.register("Normalized Error Kurtosis", "nEKurt", "Kurtosis of normalized error distribution")
+    def normalized_error_kurtosis(self) -> float:
+        """
+        Calculate kurtosis of the normalized error (nE) distribution.
+
+        Uses the unbiased sample kurtosis formula:
+            kurt = [N(N+1)/((N-1)(N-2)(N-3))] * Σ z^4 - [3(N-1)^2/((N-2)(N-3))]
+        where z = (nE - mean_nE) / SD.
+        """
+        nE = self._normalized_error()
+        if nE is None:
+            return np.nan
+
+        mask = np.isfinite(nE)
+        nE = nE[mask]
+        N = len(nE)
+        if N < 4:
+            return np.nan
+
+        mean_nE = bn.nanmean(nE)
+        sd_nE = bn.nanstd(nE)
+        if np.isclose(sd_nE, 0.0):
+            return np.nan
+
+        z = (nE - mean_nE) / sd_nE
+        term1 = (N * (N + 1)) / ((N - 1) * (N - 2) * (N - 3)) * bn.nansum(z ** 4)
+        term2 = (3 * (N - 1) ** 2) / ((N - 2) * (N - 3))
+        return term1 - term2
+
     @MetricRegistry.register("Distance Correlation", "dCor", "Distance correlation (Székely et al. 2007)")
     def distance_correlation(self) -> float:
         """
@@ -1249,6 +1306,19 @@ class ErrorMetrics:
         rnp = 1 - np.sqrt((rnp_alpha - 1)**2 + (rnp_beta - 1)**2 + (rnp_r - 1)**2)
         
         return rnp, rnp_r, rnp_alpha, rnp_beta
+
+    def _normalized_error(self) -> Optional[np.ndarray]:
+        """Return normalized error array nE = (pred - obs) / max(pred)."""
+        if hasattr(self, "_normalized_error_cache"):
+            return self._normalized_error_cache
+
+        max_pred = bn.nanmax(self.predictions)
+        if not np.isfinite(max_pred) or np.isclose(max_pred, 0.0):
+            self._normalized_error_cache = None
+            return self._normalized_error_cache
+
+        self._normalized_error_cache = (self.predictions - self.observations) / max_pred
+        return self._normalized_error_cache
 
     @MetricRegistry.register("Taylor Skill Score", "TSS", "Taylor skill score")
     def taylor_skill_score(self) -> float:

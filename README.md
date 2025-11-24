@@ -353,6 +353,14 @@ all_metrics = metrics.all_metrics()
   - Range: [0, ∞)
   - Formula: Q3 - Q1 (75th percentile - 25th percentile of observations)
 
+- **Normalized Error Skewness (nESkew)**: Skewness of normalized error distribution
+  - Uses normalized error nE = (prediction - observation) / max(prediction)
+  - Formula: skew = [N / ((N-1)(N-2))] * Σ ((nE - mean_nE) / SD)^3
+
+- **Normalized Error Kurtosis (nEKurt)**: Kurtosis of normalized error distribution
+  - Uses unbiased sample kurtosis formula on the normalized error
+  - Formula: kurt = [N(N+1)/((N-1)(N-2)(N-3))] * Σ z^4 - [3(N-1)^2/((N-2)(N-3))]
+
 ### Engineering Metrics
 
 - **A10 Index (A10)**: Proportion of predictions within ±10% of actual values

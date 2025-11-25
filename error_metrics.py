@@ -128,6 +128,28 @@ class ErrorMetrics:
         from scipy import stats
         return stats.spearmanr(self.predictions, self.observations)[0]
 
+    @MetricRegistry.register("Kendall Tau Correlation", "KendallTau", "Kendall's tau rank correlation coefficient")
+    def kendall_tau(self) -> float:
+        """
+        Calculate Kendall's Tau rank correlation coefficient.
+        
+        Kendall's tau measures the ordinal association between two variables
+        based on the number of concordant and discordant pairs.
+        
+        Formula: τ = (concordant pairs - discordant pairs) / total pairs
+        
+        Range: [-1, 1]
+        Perfect score: 1 (or -1 for perfect negative correlation)
+        
+        Advantages:
+        - More robust to outliers than Pearson correlation
+        - Has direct interpretation in terms of probability
+        - Less sensitive to ties than Spearman correlation
+        """
+        from scipy.stats import kendalltau
+        correlation, _ = kendalltau(self.observations, self.predictions, nan_policy='omit')
+        return correlation
+
     @MetricRegistry.register("Lin's Concordance Correlation", "LCCC", "Measure of agreement")
     def lccc(self) -> float:
         """Calculate Lin's Concordance Correlation Coefficient."""

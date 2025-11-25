@@ -94,6 +94,12 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 1
   - Formula: Spearman's rank correlation coefficient
 
+- **Kendall Tau Correlation (KendallTau)**: Rank correlation based on concordant pairs
+  - Range: [-1, 1]
+  - Perfect score: 1
+  - Formula: τ = (concordant pairs - discordant pairs) / total pairs
+  - More robust to outliers and ties than Spearman
+
 - **Lin's Concordance Correlation (LCCC)**: Measure of agreement
   - Range: [-1, 1]
   - Perfect score: 1

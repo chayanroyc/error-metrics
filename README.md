@@ -71,6 +71,12 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: mean(|predictions - observations| / observations)
 
+- **Geometric Mean Bias (GMB)**: Multiplicative bias measure
+  - Range: (0, ∞)
+  - Perfect score: 1
+  - Formula: exp(mean(ln(predictions / observations)))
+  - Note: Requires positive values for both predictions and observations
+
 ### Correlation Metrics
 
 - **Correlation Coefficient (R)**: Pearson correlation coefficient

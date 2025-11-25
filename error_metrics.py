@@ -380,6 +380,35 @@ class ErrorMetrics:
         safe_obs = np.where(self.observations == 0, np.nan, self.observations)
         return bn.nanmean(np.abs(self.diff) / safe_obs)
 
+    @MetricRegistry.register("Geometric Mean Bias", "GMB", "Geometric Mean Bias")
+    def geometric_mean_bias(self) -> float:
+        """
+        Calculate Geometric Mean Bias (GMB).
+        
+        Formula: GMB = exp(mean(ln(predictions / observations)))
+        
+        GMB measures multiplicative bias:
+        - GMB = 1: No bias (perfect)
+        - GMB > 1: Over-prediction bias
+        - GMB < 1: Under-prediction bias
+        
+        Range: (0, +∞)
+        Perfect score: 1
+        
+        Note: Requires positive values for both predictions and observations.
+        """
+        # Check for non-positive values
+        if np.any(self.predictions <= 0) or np.any(self.observations <= 0):
+            warnings.warn("GMB requires positive values. Non-positive values will be treated as NaN.")
+        
+        # Calculate ratio, handling non-positive values
+        ratio = self.predictions / self.observations
+        ratio = np.where((self.predictions <= 0) | (self.observations <= 0), np.nan, ratio)
+        
+        # Calculate geometric mean bias
+        log_ratio = np.log(ratio)
+        return np.exp(bn.nanmean(log_ratio))
+
     @MetricRegistry.register("Factor of Observations 2", "FAC2", "Factor of Observations 2")
     def factor_of_observations2(self) -> float:
         """Calculate factor of observations 2 (FAC2)."""

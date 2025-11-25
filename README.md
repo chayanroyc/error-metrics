@@ -66,10 +66,10 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: sqrt(mean((predictions - observations)²))
 
-- **Mean Absolute Gross Error (MAGE)**: Average absolute gross error
+- **Mean Absolute Gross Error (MAGE)**: Normalized mean absolute error
   - Range: [0, ∞)
   - Perfect score: 0
-  - Formula: mean(|predictions - observations|)
+  - Formula: mean(|predictions - observations| / observations)
 
 ### Correlation Metrics
 

@@ -370,8 +370,15 @@ class ErrorMetrics:
 
     @MetricRegistry.register("Mean Absolute Gross Error", "MAGE", "Mean Absolute Gross Error")
     def mean_absolute_gross_error(self) -> float:
-        """Calculate mean absolute gross error."""
-        return bn.nanmean(np.abs(self.diff))
+        """
+        Calculate Mean Absolute Gross Error (MAGE).
+        
+        Formula: MAGE = mean(|predictions - observations| / observations)
+        
+        This is the normalized version of MAE, expressing error as a fraction of observations.
+        """
+        safe_obs = np.where(self.observations == 0, np.nan, self.observations)
+        return bn.nanmean(np.abs(self.diff) / safe_obs)
 
     @MetricRegistry.register("Factor of Observations 2", "FAC2", "Factor of Observations 2")
     def factor_of_observations2(self) -> float:

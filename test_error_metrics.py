@@ -436,4 +436,28 @@ def test_mean_squared_logarithmic_error():
     metrics = ErrorMetrics(predictions, observations)
     msle = metrics.mean_squared_logarithmic_error()
     assert not np.isnan(msle)
-    assert not np.isinf(msle) 
+    assert not np.isinf(msle)
+
+def test_geometric_mean_bias():
+    # Test Geometric Mean Bias
+    predictions = np.array([1.2, 1.8, 3.2, 3.9, 5.1])
+    observations = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    metrics = ErrorMetrics(predictions, observations)
+    gmb = metrics.geometric_mean_bias()
+    assert not np.isnan(gmb)
+    assert gmb > 0  # GMB should be positive
+    
+    # Test perfect case (predictions = observations)
+    perfect_metrics = ErrorMetrics([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+    gmb_perfect = perfect_metrics.geometric_mean_bias()
+    assert np.isclose(gmb_perfect, 1.0, rtol=1e-10)  # Should be exactly 1.0
+    
+    # Test over-prediction case
+    over_metrics = ErrorMetrics([2.0, 4.0, 6.0], [1.0, 2.0, 3.0])
+    gmb_over = over_metrics.geometric_mean_bias()
+    assert gmb_over > 1.0  # Should indicate over-prediction
+    
+    # Test under-prediction case  
+    under_metrics = ErrorMetrics([0.5, 1.0, 1.5], [1.0, 2.0, 3.0])
+    gmb_under = under_metrics.geometric_mean_bias()
+    assert gmb_under < 1.0  # Should indicate under-prediction 

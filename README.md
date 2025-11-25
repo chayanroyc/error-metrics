@@ -71,6 +71,11 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: sqrt(mean((predictions - observations)²))
 
+- **Centered Root Mean Square (CRMSE)**: RMSE with bias removed
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: sqrt(mean((predictions - pred_mean - observations + obs_mean)²))
+
 - **Mean Absolute Gross Error (MAGE)**: Normalized mean absolute error
   - Range: [0, ∞)
   - Perfect score: 0
@@ -104,6 +109,11 @@ all_metrics = metrics.all_metrics()
   - Range: [-1, 1]
   - Perfect score: 1
   - Formula: 2 * r * σx * σy / (σx² + σy² + (μx - μy)²)
+
+- **Coefficient of Determination (R2)**: R-squared
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Formula: 1 - sum((observations - predictions)²) / sum((observations - mean_obs)²)
 
 - **Explained Variance (EV)**: Proportion of variance explained
   - Range: (-∞, 1]
@@ -145,6 +155,16 @@ all_metrics = metrics.all_metrics()
   - Range: [0, ∞)
   - Perfect score: 0
   - Formula: mean(|predictions - observations| / observations)
+
+- **Normalized Mean Bias Factor (NMBF)**: Normalized bias factor
+  - Range: (0, ∞)
+  - Perfect score: 1
+  - Formula: mean(predictions) / mean(observations)
+
+- **Relative Normalized Mean Bias Factor (RNMBF)**: Relative bias factor
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: |mean(predictions) / mean(observations) - 1|
 
 - **Fractional Bias (FB)**: Measure of relative bias
   - Range: [-2, 2]
@@ -391,6 +411,36 @@ all_metrics = metrics.all_metrics()
 - **Interquartile Range (IQR)**: Measure of statistical dispersion of observations
   - Range: [0, ∞)
   - Formula: Q3 - Q1 (75th percentile - 25th percentile of observations)
+
+- **Standard Deviation (STD)**: Standard deviation of observations
+  - Range: [0, ∞)
+  - Formula: sqrt(mean((observations - mean_obs)²))
+
+- **Mean Values (MEAN)**: Mean values of observations and predictions
+  - Returns: Tuple (mean_obs, mean_pred)
+  - Formula: (mean(observations), mean(predictions))
+
+- **Median Values (MEDIAN)**: Median values of observations and predictions
+  - Returns: Tuple (median_obs, median_pred)
+  - Formula: (median(observations), median(predictions))
+
+- **Mean Squared Logarithmic Error (MSLE)**: Logarithmic error measure
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: mean((log(predictions + 1) - log(observations + 1))²)
+
+- **Trend Accuracy (TAcc)**: Accuracy of trend prediction
+  - Range: [0, 1]
+  - Perfect score: 1
+  - Formula: 1 - |trend_pred - trend_obs| / (|trend_obs| + ε)
+
+- **Normed Mean Bias Factor (NMBF)**: Normed bias factor with NMAE
+  - Returns: Tuple (NMBF, NMAE)
+  - Formula: (mean(predictions) / mean(observations), mean(|predictions - observations|) / mean(observations))
+
+- **Revised Normed Mean Bias Factor (RNMBF)**: Revised normed bias factor
+  - Returns: Tuple (RNMBF, RNMAE)
+  - Formula: Revised version of NMBF with different normalization
 
 - **Normalized Error Skewness (nESkew)**: Skewness of normalized error distribution
   - Uses normalized error nE = (prediction - observation) / max(prediction)

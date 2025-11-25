@@ -484,4 +484,29 @@ def test_median_absolute_error():
     mae_outlier = outlier_metrics.mean_absolute_error()
     
     # MedAE should be less affected by the outlier than MAE
-    assert medae_outlier < mae_outlier 
+    assert medae_outlier < mae_outlier
+
+def test_kendall_tau():
+    # Test Kendall's Tau correlation
+    predictions = np.array([1.2, 1.8, 3.2, 3.9, 5.1])
+    observations = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    metrics = ErrorMetrics(predictions, observations)
+    tau = metrics.kendall_tau()
+    assert not np.isnan(tau)
+    assert -1 <= tau <= 1  # Tau should be in [-1, 1]
+    
+    # Test perfect positive correlation
+    perfect_metrics = ErrorMetrics([1.0, 2.0, 3.0, 4.0], [1.0, 2.0, 3.0, 4.0])
+    tau_perfect = perfect_metrics.kendall_tau()
+    assert np.isclose(tau_perfect, 1.0, rtol=1e-10)  # Should be exactly 1.0
+    
+    # Test perfect negative correlation
+    negative_metrics = ErrorMetrics([4.0, 3.0, 2.0, 1.0], [1.0, 2.0, 3.0, 4.0])
+    tau_negative = negative_metrics.kendall_tau()
+    assert np.isclose(tau_negative, -1.0, rtol=1e-10)  # Should be exactly -1.0
+    
+    # Test no correlation (random)
+    no_corr_metrics = ErrorMetrics([1.0, 3.0, 2.0, 4.0], [1.0, 2.0, 3.0, 4.0])
+    tau_no_corr = no_corr_metrics.kendall_tau()
+    assert not np.isnan(tau_no_corr)
+    assert -1 <= tau_no_corr <= 1 

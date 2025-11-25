@@ -61,6 +61,11 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: mean(|predictions - observations|)
 
+- **Median Absolute Error (MedAE)**: Median absolute error (robust to outliers)
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: median(|predictions - observations|)
+
 - **Root Mean Squared Error (RMSE)**: Square root of mean squared differences
   - Range: [0, ∞)
   - Perfect score: 0

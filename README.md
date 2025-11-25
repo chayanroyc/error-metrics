@@ -140,6 +140,36 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: mean((predictions - observations)²) / (mean(predictions) * mean(observations))
 
+- **Coefficient of Residual Mass (CRM)**: Measure of mass balance
+  - Range: (-∞, ∞)
+  - Perfect score: 0
+  - Formula: (sum(predictions) - sum(observations)) / sum(observations)
+
+- **Relative Error (RE)**: Relative error measure
+  - Range: (-∞, ∞)
+  - Perfect score: 0
+  - Formula: (predictions - observations) / observations
+
+- **Efficiency Coefficient (EC)**: Efficiency measure
+  - Range: (-∞, 1]
+  - Perfect score: 1
+  - Formula: 1 - sum((predictions - observations)²) / sum((observations - mean_obs)²)
+
+- **Mean Absolute Scaled Error (MASE)**: Scale-independent error measure
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: mean(|predictions - observations|) / mean(|observations[1:] - observations[:-1]|)
+
+- **Normalized Absolute Error (NAE)**: Normalized absolute error
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: sum(|predictions - observations|) / sum(observations)
+
+- **Relative Euclidean Distance (RED)**: Relative distance measure
+  - Range: [0, ∞)
+  - Perfect score: 0
+  - Formula: sqrt(mean(((predictions - observations) / observations)²))
+
 - **Inter-Quartile RMSE (iqRMSE)**: RMSE normalized by observation IQR
   - Range: [0, ∞)
   - Perfect score: 0

@@ -460,4 +460,28 @@ def test_geometric_mean_bias():
     # Test under-prediction case  
     under_metrics = ErrorMetrics([0.5, 1.0, 1.5], [1.0, 2.0, 3.0])
     gmb_under = under_metrics.geometric_mean_bias()
-    assert gmb_under < 1.0  # Should indicate under-prediction 
+    assert gmb_under < 1.0  # Should indicate under-prediction
+
+def test_median_absolute_error():
+    # Test Median Absolute Error
+    predictions = np.array([1.2, 1.8, 3.2, 3.9, 5.1])
+    observations = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    metrics = ErrorMetrics(predictions, observations)
+    medae = metrics.median_absolute_error()
+    assert not np.isnan(medae)
+    assert medae >= 0  # MedAE should be non-negative
+    
+    # Test perfect case (predictions = observations)
+    perfect_metrics = ErrorMetrics([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+    medae_perfect = perfect_metrics.median_absolute_error()
+    assert medae_perfect == 0.0  # Should be exactly 0.0
+    
+    # Test with outliers - MedAE should be more robust than MAE
+    outlier_predictions = np.array([1.0, 2.0, 3.0, 100.0])  # Large outlier
+    outlier_observations = np.array([1.0, 2.0, 3.0, 4.0])
+    outlier_metrics = ErrorMetrics(outlier_predictions, outlier_observations)
+    medae_outlier = outlier_metrics.median_absolute_error()
+    mae_outlier = outlier_metrics.mean_absolute_error()
+    
+    # MedAE should be less affected by the outlier than MAE
+    assert medae_outlier < mae_outlier 

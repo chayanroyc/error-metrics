@@ -95,6 +95,21 @@ class ErrorMetrics:
         """Calculate mean absolute error."""
         return bn.nanmean(np.abs(self.diff))
 
+    @MetricRegistry.register("Median Absolute Error", "MedAE", "Median Absolute Error")
+    def median_absolute_error(self) -> float:
+        """
+        Calculate Median Absolute Error (MedAE).
+        
+        Formula: MedAE = median(|predictions - observations|)
+        
+        MedAE is more robust to outliers than MAE as it uses the median
+        instead of the mean of absolute errors.
+        
+        Range: [0, +∞)
+        Perfect score: 0
+        """
+        return bn.nanmedian(np.abs(self.diff))
+
     @MetricRegistry.register("Root Mean Squared Error", "RMSE", "Root Mean Squared Error")
     def root_mean_squared_error(self) -> float:
         """Calculate root mean squared error."""

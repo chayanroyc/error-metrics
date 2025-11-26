@@ -165,6 +165,12 @@ all_metrics = metrics.all_metrics()
   - Perfect score: 0
   - Formula: sum(|predictions - observations|) / sum(observations)
 
+- **Gini Coefficient (Gini)**: Inequality measure for ranking evaluation
+  - Range: [0, 1]
+  - Perfect score: 1
+  - Formula: Area between Lorenz curve and diagonal (based on sorted predictions)
+  - Used in ML competitions for ranking problems
+
 - **Relative Euclidean Distance (RED)**: Relative distance measure
   - Range: [0, ∞)
   - Perfect score: 0

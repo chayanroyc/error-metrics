@@ -509,4 +509,32 @@ def test_kendall_tau():
     no_corr_metrics = ErrorMetrics([1.0, 3.0, 2.0, 4.0], [1.0, 2.0, 3.0, 4.0])
     tau_no_corr = no_corr_metrics.kendall_tau()
     assert not np.isnan(tau_no_corr)
-    assert -1 <= tau_no_corr <= 1 
+    assert -1 <= tau_no_corr <= 1
+
+def test_gini_coefficient():
+    # Test Gini coefficient
+    predictions = np.array([0.9, 0.8, 0.7, 0.6, 0.5])
+    observations = np.array([1.0, 1.0, 0.0, 0.0, 0.0])
+    metrics = ErrorMetrics(predictions, observations)
+    gini = metrics.gini_coefficient()
+    assert not np.isnan(gini)
+    assert 0 <= gini <= 1  # Gini should be in [0, 1]
+    
+    # Test perfect ranking case (should give high Gini)
+    perfect_pred = np.array([1.0, 0.9, 0.8, 0.1, 0.0])
+    perfect_obs = np.array([1.0, 1.0, 1.0, 0.0, 0.0])
+    perfect_metrics = ErrorMetrics(perfect_pred, perfect_obs)
+    gini_perfect = perfect_metrics.gini_coefficient()
+    assert gini_perfect > 0.5  # Should be high for good ranking
+    
+    # Test random ranking case (should give lower Gini)
+    random_pred = np.array([0.5, 0.4, 0.6, 0.3, 0.7])
+    random_obs = np.array([1.0, 1.0, 1.0, 0.0, 0.0])
+    random_metrics = ErrorMetrics(random_pred, random_obs)
+    gini_random = random_metrics.gini_coefficient()
+    assert gini_random < gini_perfect  # Random should be worse than perfect ranking
+    
+    # Test edge case: all zeros
+    zero_metrics = ErrorMetrics([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
+    gini_zero = zero_metrics.gini_coefficient()
+    assert np.isnan(gini_zero)  # Should return NaN for zero total 

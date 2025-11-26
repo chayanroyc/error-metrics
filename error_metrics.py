@@ -1545,6 +1545,50 @@ class ErrorMetrics:
         nae = np.abs(self.diff) / (0.5 * (self.predictions + self.observations))
         return bn.nanmean(nae)
 
+    @MetricRegistry.register("Gini Coefficient", "Gini", "Gini coefficient for ranking evaluation")
+    def gini_coefficient(self) -> float:
+        """
+        Calculate Gini coefficient for ranking evaluation.
+        
+        Based on Ben Hamner's implementation:
+        https://github.com/benhamner/Metrics/blob/master/MATLAB/metrics/gini.m
+        
+        The Gini coefficient measures the inequality of a distribution and is commonly
+        used in machine learning competitions for ranking problems.
+        
+        Algorithm:
+        1. Sort predictions in descending order
+        2. Calculate cumulative population and loss percentages  
+        3. Compute area between Lorenz curve and diagonal
+        
+        Range: [0, 1]
+        Perfect score: 1 (maximum inequality/perfect ranking)
+        
+        Note: Higher values indicate better ranking ability.
+        """
+        if self.N == 0:
+            return np.nan
+            
+        # Sort by predictions in descending order
+        sort_indices = np.argsort(-self.predictions)
+        
+        population_delta = 1.0 / self.N
+        accumulated_population_percentage_sum = 0.0
+        accumulated_loss_percentage_sum = 0.0
+        score = 0.0
+        total_losses = bn.nansum(self.observations)
+        
+        if total_losses == 0:
+            return np.nan
+            
+        for i in range(self.N):
+            loc = sort_indices[i]
+            accumulated_loss_percentage_sum += self.observations[loc] / total_losses
+            accumulated_population_percentage_sum += population_delta
+            score += accumulated_loss_percentage_sum - accumulated_population_percentage_sum
+            
+        return score / self.N
+
     def get_metrics(self, metric_names: List[str], round_factor: int = 2) -> Dict[str, float]:
         """
         Calculate specified metrics.

@@ -537,4 +537,35 @@ def test_gini_coefficient():
     # Test edge case: all zeros
     zero_metrics = ErrorMetrics([0.0, 0.0, 0.0], [0.0, 0.0, 0.0])
     gini_zero = zero_metrics.gini_coefficient()
-    assert np.isnan(gini_zero)  # Should return NaN for zero total 
+    assert np.isnan(gini_zero)  # Should return NaN for zero total
+
+def test_prediction_of_change_in_direction():
+    # Test PCD with perfect directional prediction
+    predictions = np.array([1.0, 2.0, 3.0, 2.5, 4.0])  # up, up, down, up
+    observations = np.array([1.1, 2.1, 3.1, 2.6, 4.1])  # up, up, down, up (same directions)
+    metrics = ErrorMetrics(predictions, observations)
+    pcd = metrics.prediction_of_change_in_direction()
+    assert np.isclose(pcd, 1.0)  # Perfect directional prediction
+    
+    # Test PCD with completely wrong directional prediction
+    wrong_predictions = np.array([1.0, 0.5, 0.0, 0.5, 0.0])  # down, down, up, down
+    correct_observations = np.array([1.0, 2.0, 3.0, 4.0, 5.0])  # up, up, up, up (opposite directions)
+    wrong_metrics = ErrorMetrics(wrong_predictions, correct_observations)
+    pcd_wrong = wrong_metrics.prediction_of_change_in_direction()
+    assert np.isclose(pcd_wrong, 0.0)  # No correct directional predictions
+    
+    # Test PCD with mixed directional prediction
+    mixed_pred = np.array([1.0, 2.0, 1.5, 3.0])  # up, down, up
+    mixed_obs = np.array([1.0, 2.0, 3.0, 2.0])   # up, up, down (1 out of 3 correct)
+    mixed_metrics = ErrorMetrics(mixed_pred, mixed_obs)
+    pcd_mixed = mixed_metrics.prediction_of_change_in_direction()
+    assert np.isclose(pcd_mixed, 1.0/3.0)  # 1 out of 3 correct
+    
+    # Test edge case: insufficient data
+    short_metrics = ErrorMetrics([1.0], [1.0])
+    pcd_short = short_metrics.prediction_of_change_in_direction()
+    assert np.isnan(pcd_short)  # Should return NaN for < 2 points
+    
+    # Test range validation
+    assert 0 <= pcd <= 1
+    assert 0 <= pcd_mixed <= 1 

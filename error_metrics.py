@@ -1589,6 +1589,44 @@ class ErrorMetrics:
             
         return score / self.N
 
+    @MetricRegistry.register("Prediction of Change in Direction", "PCD", "Prediction of Change in Direction")
+    def prediction_of_change_in_direction(self) -> float:
+        """
+        Calculate Prediction of Change in Direction (PCD).
+        
+        Based on Permetrics implementation:
+        https://permetrics.readthedocs.io/en/latest/pages/regression/PCD.html
+        
+        PCD evaluates how well a model predicts the direction of change in a time series.
+        It measures the proportion of times the model correctly predicts whether the 
+        target variable will increase or decrease.
+        
+        Formula: PCD = (1/(n-1)) × ∑[I((f_i - f_{i-1})(y_i - y_{i-1}) > 0)]
+        
+        Where:
+        - f_i is the predicted value at time i
+        - y_i is the actual value at time i
+        - I(·) is the indicator function (1 if true, 0 if false)
+        
+        Range: [0, 1]
+        Perfect score: 1.0 (bigger is better)
+        
+        Note: Requires at least 2 data points for calculation.
+        """
+        if self.N < 2:
+            return np.nan
+            
+        # Calculate differences between consecutive points
+        pred_diff = self.predictions[1:] - self.predictions[:-1]
+        obs_diff = self.observations[1:] - self.observations[:-1]
+        
+        # Check if direction changes match (both positive or both negative)
+        # This is equivalent to checking if their product is positive
+        direction_matches = (pred_diff * obs_diff) > 0
+        
+        # Calculate PCD as proportion of correct direction predictions
+        return np.sum(direction_matches) / (self.N - 1)
+
     def get_metrics(self, metric_names: List[str], round_factor: int = 2) -> Dict[str, float]:
         """
         Calculate specified metrics.

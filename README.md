@@ -171,6 +171,12 @@ all_metrics = metrics.all_metrics()
   - Formula: Area between Lorenz curve and diagonal (based on sorted predictions)
   - Used in ML competitions for ranking problems
 
+- **Prediction of Change in Direction (PCD)**: Direction change prediction accuracy
+  - Range: [0, 1]
+  - Perfect score: 1
+  - Formula: PCD = (1/(n-1)) × ∑[I((f_i - f_{i-1})(y_i - y_{i-1}) > 0)]
+  - Measures proportion of correct directional predictions in time series
+
 - **Relative Euclidean Distance (RED)**: Relative distance measure
   - Range: [0, ∞)
   - Perfect score: 0

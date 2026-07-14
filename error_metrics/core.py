@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
 import numpy as np
-import bottleneck as bn
+try:
+    import bottleneck as bn
+except ImportError:
+    bn = np
 from typing import Dict, List, Tuple, Union, Callable, Optional
 from dataclasses import dataclass
 from functools import wraps
@@ -1676,4 +1679,4 @@ class ErrorMetrics:
             if verbose:
                 print(f"{abbr}: {info.name} - {info.description}")
             else:
-                print(f"{abbr}: {info.name}") 
+                print(f"{abbr}: {info.name}")

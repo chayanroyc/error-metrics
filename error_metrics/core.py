@@ -985,6 +985,8 @@ class ErrorMetrics:
     def normalized_error_skewness(self) -> float:
         """Calculate skewness of the normalized error."""
         ne = self._normalized_error()
+        if ne is None:
+            return np.nan
         ne = ne[np.isfinite(ne)]
         if len(ne) < 3:
             return np.nan
@@ -994,6 +996,8 @@ class ErrorMetrics:
     def normalized_error_kurtosis(self) -> float:
         """Calculate kurtosis of the normalized error."""
         ne = self._normalized_error()
+        if ne is None:
+            return np.nan
         ne = ne[np.isfinite(ne)]
         if len(ne) < 4:
             return np.nan

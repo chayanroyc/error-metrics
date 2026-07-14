@@ -24,6 +24,13 @@ def test_duplicate_abbreviations_use_documented_scalar_methods():
     assert MetricRegistry.get_metric("RNMBF").function.__name__ == "rnmbf"
 
 
+def test_normalized_error_shape_metrics_return_nan_for_zero_predictions():
+    metrics = ErrorMetrics([0, 0, 0, 0], [0, 0, 0, 0])
+
+    assert np.isnan(metrics.normalized_error_skewness())
+    assert np.isnan(metrics.normalized_error_kurtosis())
+
+
 def test_registry_rejects_different_function_for_existing_abbreviation():
     abbreviation = "__test_conflict__"
 

@@ -1584,6 +1584,16 @@ class ErrorMetrics:
         log_obs = np.log1p(self.observations)
         return bn.nanmean((log_pred - log_obs) ** 2)
 
+    @MetricRegistry.register("Normalized Mean Absolute p-Error", "NMAEp", "Lp-norm accuracy normalized by mean observation")
+    def nmaep(self, p: float = 1.0) -> float:
+        """Return generalized absolute p-error normalized by mean observation."""
+        if not np.isfinite(p) or p <= 0:
+            raise ValueError("p must be finite and > 0")
+        if self.obs_mean == 0:
+            raise ValueError("NMAEp is undefined when the observation mean is zero.")
+        lp_norm = bn.nanmean(np.abs(self.diff) ** p) ** (1.0 / p)
+        return float(lp_norm / np.abs(self.obs_mean))
+
     @MetricRegistry.register("Normalized Absolute Error", "NAE", "Normalized Absolute Error")
     def normalized_absolute_error(self) -> float:
         """

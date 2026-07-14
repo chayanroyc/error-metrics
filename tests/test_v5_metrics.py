@@ -76,3 +76,22 @@ def test_phi_bounds_validation_and_registry():
         with pytest.raises(ValueError, match="integer >= 1"):
             metrics.phi(invalid)
     assert MetricRegistry.get_metric("PHI").function.__name__ == "phi"
+
+
+def test_nmaep_matches_p1_p2_hand_calculations():
+    metrics = ErrorMetrics([2.0, 4.0], [1.0, 2.0])
+    assert np.isclose(metrics.nmaep(1.0), 1.0)
+    assert np.isclose(metrics.nmaep(2.0), np.sqrt(2.5) / 1.5)
+
+
+@pytest.mark.parametrize("p", [0.0, -1.0, np.inf, -np.inf, np.nan])
+def test_nmaep_validation(p):
+    metrics = ErrorMetrics([2.0, 4.0], [1.0, 2.0])
+    with pytest.raises(ValueError, match="finite and > 0"):
+        metrics.nmaep(p)
+
+
+def test_nmaep_zero_mean_and_registry():
+    with pytest.raises(ValueError, match="observation mean is zero"):
+        ErrorMetrics([1, 2], [-1, 1]).nmaep()
+    assert MetricRegistry.get_metric("NMAEp").function.__name__ == "nmaep"

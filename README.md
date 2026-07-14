@@ -1,16 +1,26 @@
+<div align="center">
+
 # Error Metrics Library
 
-Error Metrics compares paired predictions and observations with 89 registered
-metrics for evaluating model performance and prediction accuracy.
+Choose and compute error metrics through one Python API.
 
-## Features
+![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)
+![89 metrics](https://img.shields.io/badge/metrics-89-blue)
+![68 tests](https://img.shields.io/badge/tests-68-blue)
+[![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-- 89 registered error metrics for model evaluation
-- Support for handling NaN and infinite values
-- Type hints and comprehensive documentation
-- Extensible metric registry system
-- Efficient computation using NumPy and Bottleneck
-- Comprehensive test coverage
+</div>
+
+Error Metrics compares paired predictions and observations through 89 registered
+metrics. It covers common errors as well as specialized distribution, agreement,
+and environmental metrics through one consistent API.
+
+- [Quick start](#quick-start)
+- [Choosing a metric](#which-metric-should-i-use)
+- [API patterns](#public-api)
+- [Metric reference](#available-metrics)
+- [Important behavior](#input-validation-and-missing-values)
+- [Contributing](#contributing)
 
 ## Installation
 
@@ -36,6 +46,12 @@ python -m pip install --upgrade --force-reinstall "git+https://github.com/chayan
 
 ## Quick start
 
+Install directly from GitHub, then calculate three metrics in about 30 seconds:
+
+```bash
+python -m pip install "git+https://github.com/chayanroyc/error-metrics.git"
+```
+
 ```python
 from error_metrics import ErrorMetrics
 
@@ -43,13 +59,51 @@ predictions = [1.2, 1.8, 3.2, 3.9, 5.1]
 observations = [1.0, 2.0, 3.0, 4.0, 5.0]
 metrics = ErrorMetrics(predictions, observations)
 
-print(metrics.mean_absolute_error())
-print(metrics.root_mean_squared_error())
 print(metrics.get_metrics(["MAE", "RMSE", "MBF"]))
+```
+
+```text
+{'MAE': 0.16, 'RMSE': 0.17, 'MBF': 1.01}
 ```
 
 Direct calls use Python method names, such as `mean_absolute_error`. Registry
 dispatch through `get_metrics` uses metric abbreviations, such as `MAE`.
+
+## Which metric should I use?
+
+No metric is a universal winner. Start with the goal closest to your evaluation
+question, then check that its assumptions fit your data.
+
+| Goal | Start with | Tradeoff |
+| --- | --- | --- |
+| Error in original units | `MAE`, `RMSE`, `MedAE` | `RMSE` emphasizes large errors; `MedAE` is robust to isolated outliers but can hide their magnitude. |
+| Scale-independent error | `MASE`, `NMAEp`, `iqRMSE`, `NAE` | Normalization changes interpretation; `MASE` needs a valid lag baseline, `NMAEp` and `iqRMSE` need nonzero normalizers, and `NAE` is unstable when paired sums approach zero. |
+| Relative or percentage error | `MAPE`, `sMAPE`, `MAAPE`, `MPE` | Ratios are unstable around zero; `MAPE` and `MPE` divide by observations, while `sMAPE` can still encounter zero paired sums. |
+| Bias | `MB`, `MBF`, `RMBF`, `MFB`, `MFE` | Signed measures can cancel errors; `MBF`/`RMBF` require positive means and `MFB`/`MFE` require nonnegative pairs. |
+| Hydrology or environmental performance | `NSE`, `KGE`, `KGE2012`, `KGEdp`, `WIA`, `LCE`, `DE` | Efficiency and agreement scores depend on variance or component denominators and can be undefined for constant series. |
+| Association or agreement | `R`, `SpearmanR`, `KendallTau`, `LCCC`, `dCor` | Association does not measure error size; correlation can be strong despite systematic bias, and constant inputs can be undefined. |
+| Distribution similarity | `KLD`, `PHI`, `SUSE`, `AD` | These do not preserve pairwise error information; histogram-based results depend on bins, while `KLD` normalizes absolute values and requires nonzero totals. |
+| Trends or direction | `TAcc`, `PCD` | These summaries ignore error magnitude; `TAcc` compares fitted slopes, while `PCD` needs sequential observations and only scores change direction. |
+
+### Data cautions
+
+| Data characteristic | Check before choosing |
+| --- | --- |
+| Zeros | Prefer original-unit errors such as `MAE` or `RMSE`; percentage metrics may divide by zero, and `MBF` requires positive means. |
+| Negatives | `MAE`, `RMSE`, and `MedAE` remain straightforward; `MFB` and `MFE` reject negative paired inputs. |
+| Outliers | Start with `MedAE` or compare it with `MAE`; `RMSE` deliberately gives large errors more weight. |
+| Different scales | Consider `MASE`, `NMAEp`, or `iqRMSE`, then verify that the required baseline or normalization denominator is nonzero. |
+| Denominator or positivity restrictions | Inspect the selected method's requirements; constant series, zero means, and nonpositive values can make ratio or efficiency metrics invalid. |
+
+### Decision flow
+
+```text
+Need error in original units? → MAE / RMSE / MedAE
+Need cross-scale comparison? → MASE / NMAEp / iqRMSE
+Need agreement rather than error size? → LCCC / WIA / dCor
+Need distribution similarity? → PHI / SUSE / KLD / AD
+Need domain efficiency? → NSE / KGE family / DE
+```
 
 ## Available Metrics
 

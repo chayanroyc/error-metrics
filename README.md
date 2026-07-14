@@ -6,7 +6,7 @@ Choose and compute error metrics through one Python API.
 
 ![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![89 metrics](https://img.shields.io/badge/metrics-89-blue)
-![69 tests](https://img.shields.io/badge/tests-69-blue)
+![70 tests](https://img.shields.io/badge/tests-70-blue)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>

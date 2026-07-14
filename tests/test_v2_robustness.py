@@ -85,3 +85,21 @@ def test_time_ordered_metric_warns_after_pairs_are_dropped(method_name):
     metrics = ErrorMetrics([1.0, np.nan, 3.0, 4.0], [1.0, 2.0, 2.5, 4.2])
     with pytest.warns(RuntimeWarning, match="time|trend|ordered"):
         getattr(metrics, method_name)()
+
+
+def test_safe_divide_returns_nan_for_zero_denominator():
+    from error_metrics.core import _safe_divide
+
+    with np.errstate(all="raise"):
+        assert np.isnan(_safe_divide(1.0, 0.0))
+
+
+def test_zero_denominator_metrics_return_nan():
+    metrics = ErrorMetrics([0.0, 0.0], [0.0, 0.0])
+    with np.errstate(all="ignore"):
+        assert np.isnan(metrics.lccc())
+        assert np.isnan(metrics.ev())
+        assert np.isnan(metrics.nmse())
+        assert np.isnan(metrics.coefficient_of_residual_mass())
+        assert np.isnan(metrics.efficiency_coefficient())
+        assert np.isnan(metrics.coefficient_of_determination())

@@ -13,6 +13,12 @@ from statsmodels.distributions.empirical_distribution import ECDF
 from scipy.spatial.distance import pdist, squareform
 from scipy.stats import skew as scipy_skew, kurtosis as scipy_kurtosis
 
+def _safe_divide(numerator: float, denominator: float) -> float:
+    """Return numerator divided by denominator, or NaN for a zero denominator."""
+    if denominator == 0:
+        return np.nan
+    return numerator / denominator
+
 @dataclass
 class MetricInfo:
     """Information about a metric including its name, function, and description."""
@@ -126,11 +132,11 @@ class ErrorMetrics:
         y_mean = bn.nanmean(y)
         denominator = bn.nansum((x - x_mean) ** 2)
         numerator = bn.nansum((x - x_mean) * (y - y_mean))
-        b1 = np.nan if denominator == 0 else numerator / denominator
+        b1 = _safe_divide(numerator, denominator)
         b0 = y_mean - b1 * x_mean
         ss_total = bn.nansum((y - y_mean) ** 2)
         ss_residual = bn.nansum((y - (b0 + b1 * x)) ** 2)
-        r2 = np.nan if ss_total == 0 else 1 - ss_residual / ss_total
+        r2 = 1 - _safe_divide(ss_residual, ss_total)
         return b1, r2
 
     @MetricRegistry.register("Mean Bias", "MB", "Mean Bias")
@@ -207,17 +213,20 @@ class ErrorMetrics:
         
         numerator = 2 * r * pred_std * obs_std
         denominator = pred_std**2 + obs_std**2 + (pred_mean - obs_mean)**2
-        return numerator / denominator
+        return _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Explained Variance", "EV", "Proportion of variance explained")
     def ev(self) -> float:
         """Calculate Explained Variance."""
-        return 1 - bn.nanvar(self.diff) / bn.nanvar(self.observations)
+        return 1 - _safe_divide(bn.nanvar(self.diff), bn.nanvar(self.observations))
 
     @MetricRegistry.register("Normalized Mean Square Error", "NMSE", "Normalized mean square error")
     def nmse(self) -> float:
         """Calculate Normalized Mean Square Error."""
-        return bn.nanmean(self.diff**2) / (bn.nanmean(self.predictions) * bn.nanmean(self.observations))
+        return _safe_divide(
+            bn.nanmean(self.diff**2),
+            bn.nanmean(self.predictions) * bn.nanmean(self.observations),
+        )
 
     @MetricRegistry.register("Coefficient of Residual Mass", "CRM", "Coefficient of Residual Mass")
     def coefficient_of_residual_mass(self) -> float:
@@ -241,7 +250,7 @@ class ErrorMetrics:
         sum_observations = bn.nansum(self.observations)
         
         # Calculate CRM using the formula (∑Ŷ - ∑Y)/∑Y
-        return (sum_predictions - sum_observations) / sum_observations
+        return _safe_divide(sum_predictions - sum_observations, sum_observations)
 
     @MetricRegistry.register("Relative Error", "RE", "Relative Error")
     def relative_error(self) -> float:
@@ -285,7 +294,7 @@ class ErrorMetrics:
         ss_tot = bn.nansum((self.observations - self.obs_mean) ** 2)
         
         # Calculate EC
-        return 1 - (ss_res / ss_tot)
+        return 1 - _safe_divide(ss_res, ss_tot)
 
     @MetricRegistry.register("Mean Absolute Scaled Error", "MASE", "Mean Absolute Scaled Error")
     def mean_absolute_scaled_error(self, m: int = 1) -> float:
@@ -320,7 +329,7 @@ class ErrorMetrics:
         mad = bn.nanmean(np.abs(np.diff(self.observations)))
         
         # Calculate MASE
-        return mae / mad
+        return _safe_divide(mae, mad)
 
     @MetricRegistry.register("Mean Arctangent Absolute Percentage Error", "MAAPE", "Mean Arctangent Absolute Percentage Error")
     def mean_arctangent_absolute_percentage_error(self) -> float:
@@ -435,7 +444,7 @@ class ErrorMetrics:
         """Calculate coefficient of determination (R²)."""
         ss_tot = bn.nansum((self.observations - self.obs_mean) ** 2)
         ss_res = bn.nansum((self.observations - self.predictions) ** 2)
-        return 1 - (ss_res / ss_tot)
+        return 1 - _safe_divide(ss_res, ss_tot)
 
     @MetricRegistry.register("Mean Normalized Bias", "MNB", "Mean Normalized Bias")
     def mean_normalized_bias(self) -> float:
@@ -510,30 +519,33 @@ class ErrorMetrics:
     @MetricRegistry.register("Mean Bias Difference", "MBD", "Mean Bias Difference")
     def mean_bias_difference(self) -> float:
         """Calculate mean bias difference."""
-        return (100 / self.obs_mean) * bn.nanmean(self.diff)
+        return 100 * _safe_divide(bn.nanmean(self.diff), self.obs_mean)
 
     @MetricRegistry.register("Root Mean Square Difference", "RMSD", "Root Mean Square Difference")
     def root_mean_square_difference(self) -> float:
         """Calculate root mean square difference."""
-        return (100 / self.obs_mean) * np.sqrt(bn.nanmean(self.diff ** 2))
+        return 100 * _safe_divide(np.sqrt(bn.nanmean(self.diff ** 2)), self.obs_mean)
 
     @MetricRegistry.register("Mean Absolute Difference", "MAD", "Mean Absolute Difference")
     def mean_absolute_difference(self) -> float:
         """Calculate mean absolute difference."""
-        return (100 / self.obs_mean) * bn.nanmean(np.abs(self.diff))
+        return 100 * _safe_divide(bn.nanmean(np.abs(self.diff)), self.obs_mean)
 
     @MetricRegistry.register("Standard Deviation of Residual", "SD", "Standard Deviation of Residual")
     def standard_deviation_of_residual(self) -> float:
         """Calculate standard deviation of the residual."""
         residual = self.diff
-        return (100 / self.obs_mean) * np.sqrt(bn.nanmean(residual ** 2) - (bn.nanmean(residual) ** 2))
+        return 100 * _safe_divide(
+            np.sqrt(bn.nanmean(residual ** 2) - (bn.nanmean(residual) ** 2)),
+            self.obs_mean,
+        )
 
     @MetricRegistry.register("Slope of Best-Fit Line", "SBF", "Slope of Best-Fit Line")
     def slope_of_best_fit_line(self) -> float:
         """Calculate slope of best-fit line."""
         numerator = bn.nansum((self.predictions - self.pred_mean) * (self.observations - self.obs_mean))
         denominator = bn.nansum((self.observations - self.obs_mean) ** 2)
-        return numerator / denominator
+        return _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Uncertainty at 95%", "U95", "Uncertainty at 95%")
     def uncertainty_95(self) -> float:
@@ -547,14 +559,14 @@ class ErrorMetrics:
         """Calculate t-statistic."""
         mbd = self.mean_bias_difference()
         rmsd = self.root_mean_square_difference()
-        return np.sqrt((self.N - 1) * (mbd ** 2) / (rmsd ** 2 - mbd ** 2))
+        return np.sqrt(_safe_divide((self.N - 1) * (mbd ** 2), rmsd ** 2 - mbd ** 2))
 
     @MetricRegistry.register("Nash-Sutcliffe Efficiency", "NSE", "Nash-Sutcliffe Efficiency")
     def nash_sutcliffe_efficiency(self) -> float:
         """Calculate Nash-Sutcliffe efficiency."""
         numerator = bn.nansum((self.predictions - self.observations) ** 2)
         denominator = bn.nansum((self.observations - self.obs_mean) ** 2)
-        return 1 - (numerator / denominator)
+        return 1 - _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Normalized NSE", "NNSE", "Normalized Nash-Sutcliffe Efficiency")
     def normalized_nse(self) -> float:
@@ -568,7 +580,7 @@ class ErrorMetrics:
             float: NNSE value in range [0, 1]
         """
         nse = self.nash_sutcliffe_efficiency()
-        return 1 / (2 - nse)
+        return _safe_divide(1, 2 - nse)
 
     @MetricRegistry.register("Relative Absolute Error", "RAE", "Relative Absolute Error")
     def relative_absolute_error(self) -> float:
@@ -583,7 +595,7 @@ class ErrorMetrics:
         """
         numerator = np.sqrt(bn.nansum(self.diff ** 2))
         denominator = np.sqrt(bn.nansum(self.observations ** 2))
-        return numerator / denominator
+        return _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Variance Accounted For", "VAF", "Variance Accounted For")
     def variance_accounted_for(self) -> float:
@@ -608,7 +620,7 @@ class ErrorMetrics:
         denominator = bn.nansum((self.observations - obs_mean) ** 2)
         
         # Calculate VAF as percentage
-        return 100 * (numerator / denominator)
+        return 100 * _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Residual Standard Error", "RSE", "Residual Standard Error")
     def residual_standard_error(self, p: int = 1) -> float:
@@ -648,8 +660,8 @@ class ErrorMetrics:
         std_obs = bn.nanstd(self.observations)
         std_pred = bn.nanstd(self.predictions)
         r = np.corrcoef(self.observations, self.predictions)[0, 1]
-        alpha = std_pred / std_obs
-        beta = self.pred_mean / self.obs_mean
+        alpha = _safe_divide(std_pred, std_obs)
+        beta = _safe_divide(self.pred_mean, self.obs_mean)
         kge = 1 - np.sqrt((r - 1) ** 2 + (alpha - 1) ** 2 + (beta - 1) ** 2)
         return kge, r, alpha, beta
 
@@ -951,7 +963,7 @@ class ErrorMetrics:
         """Calculate Legates coefficient of efficiency."""
         numerator = bn.nansum(np.abs(self.predictions - self.observations))
         denominator = bn.nansum(np.abs(self.observations - self.obs_mean))
-        return 1 - (numerator / denominator)
+        return 1 - _safe_divide(numerator, denominator)
 
     @MetricRegistry.register("Kolmogorov-Smirnov Test Integral", "KSI", "Measure of distribution similarity")
     def ksi(self, normed: bool = True) -> float:
@@ -975,9 +987,9 @@ class ErrorMetrics:
         ksi = np.sum(D[:-1] * np.diff(x))
 
         if normed:
-            Vc = 1.63 / np.sqrt(len(self.observations))
+            Vc = _safe_divide(1.63, np.sqrt(len(self.observations)))
             a_critical = Vc * (x.max() - x.min())
-            return ksi * 100 / a_critical
+            return 100 * _safe_divide(ksi, a_critical)
         return ksi
 
     @MetricRegistry.register("Over-estimation Metric", "OVER", "Measure of over-estimation")
@@ -1002,9 +1014,9 @@ class ErrorMetrics:
         over = np.sum(D[:-1] * np.diff(x))
 
         if normed:
-            Vc = 1.63 / np.sqrt(len(self.observations))
+            Vc = _safe_divide(1.63, np.sqrt(len(self.observations)))
             a_critical = Vc * (x.max() - x.min())
-            return over * 100 / a_critical
+            return 100 * _safe_divide(over, a_critical)
         return over
 
     @MetricRegistry.register("Interquartile Range", "IQR", "Measure of statistical dispersion")
@@ -1050,7 +1062,7 @@ class ErrorMetrics:
     @MetricRegistry.register("Normalized Mean Bias Factor", "NMBF", "Measure of bias factor")
     def nmbf(self) -> float:
         """Calculate Normalized Mean Bias Factor."""
-        return bn.nanmean(self.predictions) / bn.nanmean(self.observations)
+        return _safe_divide(bn.nanmean(self.predictions), bn.nanmean(self.observations))
 
     @MetricRegistry.register("Relative Normalized Mean Bias Factor", "RNMBF", "Measure of relative bias factor")
     def rnmbf(self) -> float:
@@ -1091,7 +1103,7 @@ class ErrorMetrics:
         Afn_sum = bn.nansum(Afn)
         Afp_sum = bn.nansum(Afp)
 
-        return (Aov_sum / (Aov_sum + Afn_sum + Afp_sum)) * 100
+        return 100 * _safe_divide(Aov_sum, Aov_sum + Afn_sum + Afp_sum)
 
     def nu(self) -> float:
         """Calculate Non-uniformity. Available through msd_decomposition()."""
@@ -1132,7 +1144,7 @@ class ErrorMetrics:
         climatology = np.full_like(self.observations, bn.nanmean(self.observations))
         ss_res = bn.nansum((self.predictions - self.observations) ** 2)
         ss_clim = bn.nansum((climatology - self.observations) ** 2)
-        return 1 - (ss_res / ss_clim)
+        return 1 - _safe_divide(ss_res, ss_clim)
 
     @MetricRegistry.register("Anderson-Darling Distance", "AD", "Anderson-Darling distance")
     def anderson_darling_distance(self) -> float:
@@ -1425,7 +1437,7 @@ class ErrorMetrics:
         rnp_alpha = 1 - 0.5 * bn.nansum(np.abs(fdc_sim - fdc_obs))
         
         # Calculate beta component (mean ratio)
-        rnp_beta = mean_sim / mean_obs
+        rnp_beta = _safe_divide(mean_sim, mean_obs)
         
         # Calculate r component (Spearman correlation)
         from scipy.stats import spearmanr
@@ -1453,8 +1465,11 @@ class ErrorMetrics:
     def taylor_skill_score(self) -> float:
         """Calculate Taylor skill score."""
         r = self.correlation_coefficient()
-        std_ratio = np.std(self.predictions) / np.std(self.observations)
-        return 4 * (1 + r)**4 / ((std_ratio + 1/std_ratio)**2 * (1 + 1)**4)
+        std_ratio = _safe_divide(np.std(self.predictions), np.std(self.observations))
+        return _safe_divide(
+            4 * (1 + r)**4,
+            (_safe_divide(1, std_ratio) + std_ratio)**2 * (1 + 1)**4,
+        )
 
     @MetricRegistry.register("Mean Values", "MEAN", "Mean values of observations and predictions")
     def meann(self) -> Tuple[float, float]:
@@ -1470,25 +1485,25 @@ class ErrorMetrics:
         """Calculate Normed Mean Bias Factor and Normalized Mean Absolute Error Factor."""
         mage = self.mean_absolute_gross_error()
         if self.pred_mean >= self.obs_mean:
-            nmbf = bn.nansum(self.predictions) / bn.nansum(self.observations) - 1
-            nmaef = mage / self.obs_mean
+            nmbf = _safe_divide(bn.nansum(self.predictions), bn.nansum(self.observations)) - 1
+            nmaef = _safe_divide(mage, self.obs_mean)
         else:
-            nmbf = 1 - bn.nansum(self.observations) / bn.nansum(self.predictions)
-            nmaef = mage / self.pred_mean
+            nmbf = 1 - _safe_divide(bn.nansum(self.observations), bn.nansum(self.predictions))
+            nmaef = _safe_divide(mage, self.pred_mean)
         return nmbf, nmaef
 
     def revised_nmbf(self) -> Tuple[float, float]:
         """Calculate Revised Normed Mean Bias Factor and Normalized Mean Absolute Error Factor."""
         mage = self.mean_absolute_gross_error()
-        pred_ratio = self.pred_mean / np.abs(self.pred_mean)
-        obs_ratio = self.obs_mean / np.abs(self.obs_mean)
+        pred_ratio = _safe_divide(self.pred_mean, np.abs(self.pred_mean))
+        obs_ratio = _safe_divide(self.obs_mean, np.abs(self.obs_mean))
 
         if self.pred_mean >= self.obs_mean and np.allclose(pred_ratio, obs_ratio):
-            nmbf = np.abs(bn.nansum(self.predictions) / bn.nansum(self.observations)) - 1
-            nmaef = mage / np.abs(self.obs_mean)
+            nmbf = np.abs(_safe_divide(bn.nansum(self.predictions), bn.nansum(self.observations))) - 1
+            nmaef = _safe_divide(mage, np.abs(self.obs_mean))
         elif self.pred_mean < self.obs_mean and np.allclose(pred_ratio, obs_ratio):
-            nmbf = 1 - np.abs(bn.nansum(self.observations) / bn.nansum(self.predictions))
-            nmaef = mage / np.abs(self.pred_mean)
+            nmbf = 1 - np.abs(_safe_divide(bn.nansum(self.observations), bn.nansum(self.predictions)))
+            nmaef = _safe_divide(mage, np.abs(self.pred_mean))
         else:
             nmbf, nmaef = np.nan, np.nan
 

@@ -47,7 +47,7 @@ python -m pip install --upgrade --force-reinstall "git+https://github.com/chayan
 
 ## Quick start
 
-Start with a direct method call when you need one metric:
+Compute a small set of metrics by their registered abbreviations:
 
 ```python
 from error_metrics import ErrorMetrics
@@ -56,14 +56,15 @@ predictions = [1.2, 1.8, 3.2, 3.9, 5.1]
 observations = [1.0, 2.0, 3.0, 4.0, 5.0]
 metrics = ErrorMetrics(predictions, observations)
 
-print(metrics.mean_absolute_error())
+print(metrics.get_metrics(["MAE", "RMSE", "MBF"]))
 ```
 
 ```text
-0.15999999999999998
+{'MAE': 0.16, 'RMSE': 0.17, 'MBF': 1.01}
 ```
 
-Direct methods use Python method names and return raw floating-point values.
+`get_metrics` returns a dictionary keyed by abbreviation and rounds values to
+two decimal places by default.
 
 ## Which metric should I use?
 
@@ -111,22 +112,30 @@ compare.
 Use a method such as `metrics.mean_absolute_error()` when you want its raw
 result or need to pass metric-specific parameters.
 
-### 2. Dispatch several metrics by abbreviation
-
-Pass registered abbreviations to `get_metrics`:
-
 ```python
-print(metrics.get_metrics(["MAE", "RMSE", "MBF"]))
+print(metrics.mean_absolute_error())
 ```
 
 ```text
-{'MAE': 0.16, 'RMSE': 0.17, 'MBF': 1.01}
+0.15999999999999998
 ```
 
-`get_metrics` rounds results to two decimal places by default. Set
-`round_factor` to choose another precision, for example
-`metrics.get_metrics(["MAE"], round_factor=3)`. It does not accept arbitrary
-metric-specific keywords.
+Direct methods use Python method names and return raw floating-point values.
+
+### 2. Dispatch several metrics by abbreviation
+
+The quick start shows the default multi-metric dispatch. Set `round_factor` to
+choose another precision:
+
+```python
+print(metrics.get_metrics(["MAE", "RMSE"], round_factor=3))
+```
+
+```text
+{'MAE': 0.16, 'RMSE': 0.167}
+```
+
+`get_metrics` does not accept arbitrary metric-specific keywords.
 
 ### 3. Pass parameters and inspect the registry
 
@@ -179,10 +188,10 @@ method's requirements:
 | Family | Relevant abbreviations |
 | --- | --- |
 | Core error | `MAE`, `MedAE`, `RMSE`, `ME`, `MAGE`, `RMSD`, `MAD`, `SD`, `RSE`, `CRMSE`, `MSLE`, `CRPS` |
-| Normalized / relative | `NMSE`, `RE`, `MASE`, `MNAE`, `RAE`, `RED`, `iqRMSE`, `NMAEp`, `NAE`, `U2` |
+| Normalized / relative | `NMSE`, `RE`, `MASE`, `MNAE`, `RAE`, `FAE`, `RED`, `iqRMSE`, `NMAEp`, `NAE`, `U2` |
 | Bias | `MB`, `CRM`, `MNB`, `FB`, `MFB`, `MFE`, `GMB`, `MBD`, `MBF`, `RMBF`, `NMBF`, `RNMBF` |
 | Correlation / agreement | `R`, `SpearmanR`, `KendallTau`, `LCCC`, `R2`, `CI`, `WIA`, `WIAr`, `BM`, `dCor`, `lambda` |
-| Efficiency / environmental | `EC`, `NSE`, `NNSE`, `VAF`, `KGE`, `KGE2012`, `KGEdp`, `DE`, `LME`, `LCEf`, `LCE`, `RNP`, `TSS`, `SS` |
+| Efficiency / environmental | `EV`, `EC`, `NSE`, `NNSE`, `VAF`, `KGE`, `KGE2012`, `KGEdp`, `DE`, `LME`, `LCEf`, `LCE`, `RNP`, `TSS`, `SS` |
 | Distribution / statistical | `KSI`, `PHI`, `SUSE`, `AD`, `KLD`, `IQR`, `STD`, `nESkew`, `nEKurt`, `Gini` |
 | Percentage | `MAAPE`, `FAC2`, `MPE`, `MAPE`, `sMAPE` |
 | Trend / direction | `TAcc`, `PCD`, `SBF` |

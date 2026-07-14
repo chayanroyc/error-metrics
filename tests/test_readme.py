@@ -5,6 +5,7 @@ from error_metrics import MetricRegistry
 README = Path(__file__).parents[1] / "README.md"
 START = "<!-- metric-reference:start -->"
 END = "<!-- metric-reference:end -->"
+FAMILIES_START = "| Family | Relevant abbreviations |"
 
 
 def test_readme_has_guided_sections():
@@ -42,3 +43,16 @@ def test_readme_metric_reference_matches_registry():
     assert len(abbreviations) == len(set(abbreviations))
     assert abbreviations == [key for key, _ in registered]
     assert documented == dict(registered)
+
+
+def test_readme_metric_families_partition_registry():
+    text = README.read_text(encoding="utf-8")
+    table = text.split(FAMILIES_START, 1)[1].split("\n\n", 1)[0]
+    abbreviations = [
+        token.strip("`")
+        for line in table.splitlines()[2:]
+        for token in line.split("|")[2].strip().split(", ")
+    ]
+
+    assert len(abbreviations) == len(set(abbreviations))
+    assert set(abbreviations) == set(MetricRegistry.get_all_metrics())

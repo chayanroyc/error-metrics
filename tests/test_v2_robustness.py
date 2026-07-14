@@ -59,3 +59,29 @@ def test_registry_allows_same_qualified_method_to_reregister():
     MetricRegistry.register("Replacement", abbreviation)(replacement)
     assert MetricRegistry.get_metric(abbreviation).function is replacement
     MetricRegistry._metrics.pop(abbreviation)
+
+
+def test_pearson_calculation_is_cached(monkeypatch):
+    calls = 0
+    original = np.corrcoef
+
+    def counting_corrcoef(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(np, "corrcoef", counting_corrcoef)
+    metrics = ErrorMetrics([1.1, 2.0, 3.2], [1.0, 2.0, 3.0])
+    metrics.correlation_coefficient()
+    metrics.lccc()
+    assert calls == 1
+
+
+@pytest.mark.parametrize(
+    "method_name",
+    ["mean_absolute_scaled_error", "trend_accuracy"],
+)
+def test_time_ordered_metric_warns_after_pairs_are_dropped(method_name):
+    metrics = ErrorMetrics([1.0, np.nan, 3.0, 4.0], [1.0, 2.0, 2.5, 4.2])
+    with pytest.warns(RuntimeWarning, match="time|trend|ordered"):
+        getattr(metrics, method_name)()

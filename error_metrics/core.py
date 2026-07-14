@@ -7,7 +7,7 @@ except ImportError:
     bn = np
 from typing import Dict, List, Tuple, Union, Callable, Optional
 from dataclasses import dataclass
-from functools import wraps
+from functools import cached_property, wraps
 import warnings
 from statsmodels.distributions.empirical_distribution import ECDF
 from scipy.spatial.distance import pdist, squareform
@@ -100,8 +100,38 @@ class ErrorMetrics:
     def _preprocess_data(self):
         """Remove NaNs and infinities from predictions and observations."""
         mask = np.isfinite(self.predictions) & np.isfinite(self.observations)
+        self._n_dropped = int((~mask).sum())
         self.predictions = self.predictions[mask]
         self.observations = self.observations[mask]
+
+    @cached_property
+    def _pearson_r(self) -> float:
+        if self.N < 2:
+            return np.nan
+        return np.corrcoef(self.predictions, self.observations)[0, 1]
+
+    @cached_property
+    def _ecdf_obs(self) -> ECDF:
+        return ECDF(self.observations)
+
+    @cached_property
+    def _ecdf_pred(self) -> ECDF:
+        return ECDF(self.predictions)
+
+    @cached_property
+    def _linreg(self) -> Tuple[float, float]:
+        x = self.predictions
+        y = self.observations
+        x_mean = bn.nanmean(x)
+        y_mean = bn.nanmean(y)
+        denominator = bn.nansum((x - x_mean) ** 2)
+        numerator = bn.nansum((x - x_mean) * (y - y_mean))
+        b1 = np.nan if denominator == 0 else numerator / denominator
+        b0 = y_mean - b1 * x_mean
+        ss_total = bn.nansum((y - y_mean) ** 2)
+        ss_residual = bn.nansum((y - (b0 + b1 * x)) ** 2)
+        r2 = np.nan if ss_total == 0 else 1 - ss_residual / ss_total
+        return b1, r2
 
     @MetricRegistry.register("Mean Bias", "MB", "Mean Bias")
     def mean_bias(self) -> float:
@@ -136,9 +166,7 @@ class ErrorMetrics:
     @MetricRegistry.register("Correlation Coefficient", "R", "Pearson correlation coefficient")
     def correlation_coefficient(self) -> float:
         """Calculate Pearson correlation coefficient."""
-        if self.N < 2:  # Need at least 2 points for correlation
-            return np.nan
-        return np.corrcoef(self.predictions, self.observations)[0, 1]
+        return self._pearson_r
 
     @MetricRegistry.register("Spearman Rank Correlation", "SpearmanR", "Spearman rank correlation coefficient")
     def spearman_r(self) -> float:
@@ -277,6 +305,14 @@ class ErrorMetrics:
         Returns:
             float: MASE value
         """
+        if self._n_dropped:
+            warnings.warn(
+                f"MASE assumes evenly-spaced, time-ordered data, but {self._n_dropped} "
+                "invalid pair(s) were removed before calculating lags.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
         # Calculate mean absolute error
         mae = bn.nanmean(np.abs(self.diff))
         
@@ -928,8 +964,8 @@ class ErrorMetrics:
         Returns:
             KSI value
         """
-        ecdf_obs = ECDF(self.observations)
-        ecdf_fx = ECDF(self.predictions)
+        ecdf_obs = self._ecdf_obs
+        ecdf_fx = self._ecdf_pred
 
         x = np.unique(np.concatenate((self.observations, self.predictions)))
         y_o = ecdf_obs(x)
@@ -955,8 +991,8 @@ class ErrorMetrics:
         Returns:
             Over-estimation value
         """
-        ecdf_obs = ECDF(self.observations)
-        ecdf_fx = ECDF(self.predictions)
+        ecdf_obs = self._ecdf_obs
+        ecdf_fx = self._ecdf_pred
 
         x = np.unique(np.concatenate((self.observations, self.predictions)))
         y_o = ecdf_obs(x)
@@ -1101,8 +1137,8 @@ class ErrorMetrics:
     @MetricRegistry.register("Anderson-Darling Distance", "AD", "Anderson-Darling distance")
     def anderson_darling_distance(self) -> float:
         """Calculate Anderson-Darling distance."""
-        ecdf_obs = ECDF(self.observations)
-        ecdf_pred = ECDF(self.predictions)
+        ecdf_obs = self._ecdf_obs
+        ecdf_pred = self._ecdf_pred
         x = np.sort(np.unique(np.concatenate((self.observations, self.predictions))))
         
         F = ecdf_obs(x)
@@ -1166,6 +1202,13 @@ class ErrorMetrics:
     @MetricRegistry.register("Trend Accuracy", "TAcc", "Trend accuracy")
     def trend_accuracy(self) -> float:
         """Calculate trend accuracy."""
+        if self._n_dropped:
+            warnings.warn(
+                f"trend_accuracy fits a trend against sample index, but {self._n_dropped} "
+                "invalid pair(s) were removed and the index was compressed.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
         obs_trend = np.polyfit(np.arange(len(self.observations)), self.observations, 1)[0]
         pred_trend = np.polyfit(np.arange(len(self.predictions)), self.predictions, 1)[0]
         return 1 - abs(obs_trend - pred_trend) / (abs(obs_trend) + 1e-10)
@@ -1353,21 +1396,7 @@ class ErrorMetrics:
 
     def linear_regression(self) -> Tuple[float, float]:
         """Perform linear regression of observations on predictions."""
-        x = self.predictions
-        y = self.observations
-        x_mean = bn.nanmean(x)
-        y_mean = bn.nanmean(y)
-        
-        # Calculate slope (b1) and intercept (b0)
-        b1 = bn.nansum((x - x_mean) * (y - y_mean)) / bn.nansum((x - x_mean) ** 2)
-        b0 = y_mean - b1 * x_mean
-        
-        # Calculate R-squared
-        ss_total = bn.nansum((y - y_mean) ** 2)
-        ss_residual = bn.nansum((y - (b0 + b1 * x)) ** 2)
-        r2 = 1 - (ss_residual / ss_total)
-        
-        return b1, r2
+        return self._linreg
 
     @MetricRegistry.register("Non-parametric KGE", "RNP", "Non-parametric Kling-Gupta efficiency")
     def rnp(self) -> Tuple[float, float, float, float]:

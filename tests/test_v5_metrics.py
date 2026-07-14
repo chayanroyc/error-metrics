@@ -95,3 +95,34 @@ def test_nmaep_zero_mean_and_registry():
     with pytest.raises(ValueError, match="observation mean is zero"):
         ErrorMetrics([1, 2], [-1, 1]).nmaep()
     assert MetricRegistry.get_metric("NMAEp").function.__name__ == "nmaep"
+
+
+def test_suse_behavior_validation_and_registry():
+    assert ErrorMetrics([0, 1, 2, 3], [0, 1, 2, 3]).suse(4) == 0.0
+    value = ErrorMetrics([0, 0, 0, 3], [0, 1, 2, 3]).suse(4)
+    assert value > 0.0 and np.isfinite(value)
+    metrics = ErrorMetrics([0, 1], [0, 1])
+    for invalid in (0, -1, 1.5, True):
+        with pytest.raises(ValueError, match="integer >= 1"):
+            metrics.suse(invalid)
+    assert MetricRegistry.get_metric("SUSE").function.__name__ == "suse"
+
+
+BASELINE_ABBREVIATIONS = {
+    "MB", "MAE", "MedAE", "RMSE", "R", "SpearmanR", "KendallTau", "LCCC", "EV", "NMSE", "CRM", "RE", "EC", "MASE", "MAAPE", "A10", "CI", "ME", "R2", "MNB", "MNAE", "FB", "FAE", "MAGE", "GMB", "FAC2", "MBD", "RMSD", "MAD", "SD", "SBF", "U95", "TS", "NSE", "NNSE", "RAE", "VAF", "RSE", "KGE", "KGE2012", "KGEdp", "DE", "LME", "LCEf", "WIA", "WIAr", "LCE", "KSI", "OVER", "IQR", "STD", "nESkew", "nEKurt", "NMBF", "RNMBF", "CPI", "RED", "FoM", "MSDdec", "SS", "AD", "KLD", "MPE", "MAPE", "sMAPE", "CRPS", "TAcc", "U2", "BM", "dCor", "lambda", "iqRMSE", "SMA", "RNP", "TSS", "MEAN", "MEDIAN", "CRMSE", "MSLE", "NAE", "Gini", "PCD",
+}
+BASELINE_MAPPINGS = {
+    "MB": "mean_bias", "MAE": "mean_absolute_error", "MedAE": "median_absolute_error", "RMSE": "root_mean_squared_error", "R": "correlation_coefficient", "SpearmanR": "spearman_r", "KendallTau": "kendall_tau", "LCCC": "lccc", "EV": "ev", "NMSE": "nmse", "CRM": "coefficient_of_residual_mass", "RE": "relative_error", "EC": "efficiency_coefficient", "MASE": "mean_absolute_scaled_error", "MAAPE": "mean_arctangent_absolute_percentage_error", "A10": "a10_index", "CI": "confidence_index", "ME": "max_error", "R2": "coefficient_of_determination", "MNB": "mean_normalized_bias", "MNAE": "mean_normalized_absolute_error", "FB": "fb", "FAE": "fae", "MAGE": "mean_absolute_gross_error", "GMB": "geometric_mean_bias", "FAC2": "factor_of_observations2", "MBD": "mean_bias_difference", "RMSD": "root_mean_square_difference", "MAD": "mean_absolute_difference", "SD": "standard_deviation_of_residual", "SBF": "slope_of_best_fit_line", "U95": "uncertainty_95", "TS": "t_statistic", "NSE": "nash_sutcliffe_efficiency", "NNSE": "normalized_nse", "RAE": "relative_absolute_error", "VAF": "variance_accounted_for", "RSE": "residual_standard_error", "KGE": "kling_gupta_efficiency", "KGE2012": "modified_kling_gupta_efficiency", "KGEdp": "kling_gupta_efficiency_double_prime", "DE": "diagnostic_efficiency", "LME": "liu_model_efficiency", "LCEf": "least_squares_combined_efficiency", "WIA": "willmotts_index_of_agreement", "WIAr": "refined_index_of_agreement", "LCE": "legates_coefficient_of_efficiency", "KSI": "ksi", "OVER": "over_metric", "IQR": "IQR", "STD": "STD", "nESkew": "normalized_error_skewness", "nEKurt": "normalized_error_kurtosis", "NMBF": "nmbf", "RNMBF": "rnmbf", "CPI": "cpi", "RED": "red", "FoM": "figure_of_merit", "MSDdec": "msd_decomposition", "SS": "skill_score_against_climatology", "AD": "anderson_darling_distance", "KLD": "kullback_leibler_divergence", "MPE": "mean_percentage_error", "MAPE": "mean_absolute_percentage_error", "sMAPE": "symmetric_mean_absolute_percentage_error", "CRPS": "continuous_ranked_probability_score", "TAcc": "trend_accuracy", "U2": "theils_u2", "BM": "berry_mielke_score", "dCor": "distance_correlation", "lambda": "duveiller_agreement_coefficient", "iqRMSE": "interquartile_rmse", "SMA": "sma_metrics", "RNP": "rnp", "TSS": "taylor_skill_score", "MEAN": "meann", "MEDIAN": "mediann", "CRMSE": "centered_root_mean_square", "MSLE": "mean_squared_logarithmic_error", "NAE": "normalized_absolute_error", "Gini": "gini_coefficient", "PCD": "prediction_of_change_in_direction",
+}
+RECOVERED_MAPPINGS = {"MBF": "mean_bias_factor", "RMBF": "relative_mean_bias_factor", "MFB": "mean_fractional_bias", "MFE": "mean_fractional_error", "PHI": "phi", "NMAEp": "nmaep", "SUSE": "suse"}
+
+
+def test_registry_is_exact_89_metric_superset():
+    registry = MetricRegistry.get_all_metrics()
+    mappings = {key: info.function.__name__ for key, info in registry.items()}
+    assert len(BASELINE_ABBREVIATIONS) == 82
+    assert set(BASELINE_MAPPINGS) == BASELINE_ABBREVIATIONS
+    assert {key: mappings[key] for key in BASELINE_MAPPINGS} == BASELINE_MAPPINGS
+    assert {key: mappings[key] for key in RECOVERED_MAPPINGS} == RECOVERED_MAPPINGS
+    assert len(registry) == len(set(registry)) == 89
+    assert not {"MSD", "SB", "NU", "LC"} & registry.keys()

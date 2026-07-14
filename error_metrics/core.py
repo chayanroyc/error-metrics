@@ -1026,6 +1026,25 @@ class ErrorMetrics:
         obs_probability = obs_counts / obs_counts.sum()
         return float(np.sum(np.minimum(pred_probability, obs_probability)))
 
+    @staticmethod
+    def _shannon_entropy(data: np.ndarray, edges: np.ndarray) -> float:
+        counts, _ = np.histogram(data, bins=edges)
+        probabilities = counts / counts.sum()
+        probabilities = probabilities[probabilities > 0]
+        return float(-np.sum(probabilities * np.log(probabilities)))
+
+    @MetricRegistry.register("Scaled and Unscaled Shannon Entropy Difference", "SUSE", "Entropy-based variability similarity")
+    def suse(self, n_bins: int = 10) -> float:
+        """Return the maximum scaled or unscaled Shannon entropy difference."""
+        if isinstance(n_bins, bool) or not isinstance(n_bins, int) or n_bins < 1:
+            raise ValueError("n_bins must be an integer >= 1")
+        common = np.histogram_bin_edges(np.concatenate((self.predictions, self.observations)), bins=n_bins)
+        scaled = abs(self._shannon_entropy(self.predictions, common) - self._shannon_entropy(self.observations, common))
+        pred_edges = np.histogram_bin_edges(self.predictions, bins=n_bins)
+        obs_edges = np.histogram_bin_edges(self.observations, bins=n_bins)
+        unscaled = abs(self._shannon_entropy(self.predictions, pred_edges) - self._shannon_entropy(self.observations, obs_edges))
+        return float(max(scaled, unscaled))
+
     @MetricRegistry.register("Over-estimation Metric", "OVER", "Measure of over-estimation")
     def over_metric(self, normed: bool = True) -> float:
         """

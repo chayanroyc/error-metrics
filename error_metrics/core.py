@@ -1587,7 +1587,7 @@ class ErrorMetrics:
     @MetricRegistry.register("Normalized Mean Absolute p-Error", "NMAEp", "Lp-norm accuracy normalized by mean observation")
     def nmaep(self, p: float = 1.0) -> float:
         """Return generalized absolute p-error normalized by mean observation."""
-        if not np.isfinite(p) or p <= 0:
+        if isinstance(p, (bool, np.bool_)) or not np.isfinite(p) or p <= 0:
             raise ValueError("p must be finite and > 0")
         if self.obs_mean == 0:
             raise ValueError("NMAEp is undefined when the observation mean is zero.")

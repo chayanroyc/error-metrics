@@ -84,7 +84,7 @@ def test_nmaep_matches_p1_p2_hand_calculations():
     assert np.isclose(metrics.nmaep(2.0), np.sqrt(2.5) / 1.5)
 
 
-@pytest.mark.parametrize("p", [0.0, -1.0, np.inf, -np.inf, np.nan])
+@pytest.mark.parametrize("p", [0.0, -1.0, np.inf, -np.inf, np.nan, True])
 def test_nmaep_validation(p):
     metrics = ErrorMetrics([2.0, 4.0], [1.0, 2.0])
     with pytest.raises(ValueError, match="finite and > 0"):

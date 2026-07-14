@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 
 # Virtual environments
+.worktrees/
 .env
 .venv
 env/
@@ -97,4 +98,3 @@ cython_debug/
 
 # macOS
 .DS_Store
-

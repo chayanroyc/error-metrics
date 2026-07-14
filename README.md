@@ -82,7 +82,7 @@ question, then check that its assumptions fit your data.
 | Bias | `MB`, `MBF`, `RMBF`, `MFB`, `MFE` | Signed measures can cancel errors; `MBF`/`RMBF` require positive means and `MFB`/`MFE` require nonnegative pairs. |
 | Hydrology or environmental performance | `NSE`, `KGE`, `KGE2012`, `KGEdp`, `WIA`, `LCE`, `DE` | Efficiency and agreement scores depend on variance or component denominators and can be undefined for constant series. |
 | Association or agreement | `R`, `SpearmanR`, `KendallTau`, `LCCC`, `dCor` | Association does not measure error size; correlation can be strong despite systematic bias, and constant inputs can be undefined. |
-| Distribution similarity | `KLD`, `PHI`, `SUSE`, `AD` | These do not preserve pairwise error information; histogram-based results depend on bins, while `KLD` normalizes absolute values and requires nonzero totals. |
+| Distribution similarity | `KLD`, `PHI`, `SUSE`, `AD` | `KLD` compares aligned entries after absolute-value normalization, so it is order-sensitive and needs nonzero totals; `PHI`, `SUSE`, and `AD` do not preserve ordinary pairwise error information, and histogram metrics depend on bins. |
 | Trends or direction | `TAcc`, `PCD` | These summaries ignore error magnitude; `TAcc` compares fitted slopes, while `PCD` needs sequential observations and only scores change direction. |
 
 ### Data cautions

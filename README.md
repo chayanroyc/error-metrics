@@ -13,14 +13,18 @@ A comprehensive Python library for calculating various error metrics between pre
 
 ## Installation
 
+Error Metrics supports Python 3.9 and newer. Install the latest version
+directly from GitHub:
+
 ```bash
-pip install numpy bottleneck statsmodels scipy
+pip install git+https://github.com/chayanroyc/error-metrics.git
 ```
 
-Or install from requirements.txt:
+NumPy, SciPy, and Statsmodels are installed automatically. Bottleneck is an
+optional performance optimization:
 
 ```bash
-pip install -r requirements.txt
+pip install "error-metrics[speed] @ git+https://github.com/chayanroyc/error-metrics.git"
 ```
 
 ## Quick Start

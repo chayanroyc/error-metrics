@@ -29,6 +29,14 @@ class MetricRegistry:
     def register(cls, name: str, abbreviation: str, description: str = ""):
         """Decorator to register a new metric."""
         def decorator(func):
+            if abbreviation in cls._metrics:
+                existing = cls._metrics[abbreviation]
+                if existing.function.__qualname__ != func.__qualname__:
+                    raise ValueError(
+                        f"Metric abbreviation '{abbreviation}' is already registered to "
+                        f"'{existing.name}' ({existing.function.__qualname__}); cannot also "
+                        f"register '{name}' ({func.__qualname__}) under the same abbreviation."
+                    )
             cls._metrics[abbreviation] = MetricInfo(
                 name=name,
                 function=func,
@@ -1158,63 +1166,6 @@ class ErrorMetrics:
         pred_trend = np.polyfit(np.arange(len(self.predictions)), self.predictions, 1)[0]
         return 1 - abs(obs_trend - pred_trend) / (abs(obs_trend) + 1e-10)
 
-    @MetricRegistry.register("Normalized Error Skewness", "nESkew", "Skewness of normalized error distribution")
-    def normalized_error_skewness(self) -> float:
-        """
-        Calculate skewness of the normalized error (nE) distribution.
-
-        nE = (prediction - observation) / max(prediction)
-
-        Skewness formula (unbiased):
-            skew = [N / ((N-1)(N-2))] * Σ ((nE_i - mean_nE) / SD)^3
-        """
-        nE = self._normalized_error()
-        if nE is None:
-            return np.nan
-
-        mask = np.isfinite(nE)
-        nE = nE[mask]
-        N = len(nE)
-        if N < 3:
-            return np.nan
-
-        mean_nE = bn.nanmean(nE)
-        sd_nE = bn.nanstd(nE)
-        if np.isclose(sd_nE, 0.0):
-            return 0.0
-
-        z = (nE - mean_nE) / sd_nE
-        return (N / ((N - 1) * (N - 2))) * bn.nansum(z ** 3)
-
-    @MetricRegistry.register("Normalized Error Kurtosis", "nEKurt", "Kurtosis of normalized error distribution")
-    def normalized_error_kurtosis(self) -> float:
-        """
-        Calculate kurtosis of the normalized error (nE) distribution.
-
-        Uses the unbiased sample kurtosis formula:
-            kurt = [N(N+1)/((N-1)(N-2)(N-3))] * Σ z^4 - [3(N-1)^2/((N-2)(N-3))]
-        where z = (nE - mean_nE) / SD.
-        """
-        nE = self._normalized_error()
-        if nE is None:
-            return np.nan
-
-        mask = np.isfinite(nE)
-        nE = nE[mask]
-        N = len(nE)
-        if N < 4:
-            return np.nan
-
-        mean_nE = bn.nanmean(nE)
-        sd_nE = bn.nanstd(nE)
-        if np.isclose(sd_nE, 0.0):
-            return np.nan
-
-        z = (nE - mean_nE) / sd_nE
-        term1 = (N * (N + 1)) / ((N - 1) * (N - 2) * (N - 3)) * bn.nansum(z ** 4)
-        term2 = (3 * (N - 1) ** 2) / ((N - 2) * (N - 3))
-        return term1 - term2
-
     @MetricRegistry.register("Theil's Inequality Coefficient", "U2", "Theil's U2 coefficient")
     def theils_u2(self) -> float:
         """
@@ -1482,7 +1433,6 @@ class ErrorMetrics:
         """Return medians of observations and predictions."""
         return bn.nanmedian(self.observations), bn.nanmedian(self.predictions)
 
-    @MetricRegistry.register("Normed Mean Bias Factor", "NMBF", "Normed Mean Bias Factor")
     def normed_mean_bias_factor(self) -> Tuple[float, float]:
         """Calculate Normed Mean Bias Factor and Normalized Mean Absolute Error Factor."""
         mage = self.mean_absolute_gross_error()
@@ -1494,7 +1444,6 @@ class ErrorMetrics:
             nmaef = mage / self.pred_mean
         return nmbf, nmaef
 
-    @MetricRegistry.register("Revised Normed Mean Bias Factor", "RNMBF", "Revised Normed Mean Bias Factor")
     def revised_nmbf(self) -> Tuple[float, float]:
         """Calculate Revised Normed Mean Bias Factor and Normalized Mean Absolute Error Factor."""
         mage = self.mean_absolute_gross_error()

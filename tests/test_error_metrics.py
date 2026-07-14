@@ -298,16 +298,11 @@ def test_normalized_error_skewness_kurtosis(sample_data):
     em = ErrorMetrics(pred, obs)
 
     nE = (pred - obs) / np.max(pred)
-    mean_nE = np.mean(nE)
-    sd_nE = np.std(nE)
-    z = (nE - mean_nE) / sd_nE
-    N = len(nE)
-    manual_skew = (N / ((N - 1) * (N - 2))) * np.sum(z ** 3)
-    manual_kurt = (N * (N + 1)) / ((N - 1) * (N - 2) * (N - 3)) * np.sum(z ** 4) - \
-        (3 * (N - 1) ** 2) / ((N - 2) * (N - 3))
+    expected_skew = scipy_skew(nE, bias=False)
+    expected_kurt = scipy_kurtosis(nE, fisher=True, bias=False)
 
-    assert np.isclose(em.normalized_error_skewness(), manual_skew)
-    assert np.isclose(em.normalized_error_kurtosis(), manual_kurt)
+    assert np.isclose(em.normalized_error_skewness(), expected_skew)
+    assert np.isclose(em.normalized_error_kurtosis(), expected_kurt)
 
 def test_distance_correlation_metric():
     # Strong non-linear relationship (parabola)

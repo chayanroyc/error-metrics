@@ -28,7 +28,8 @@ class BlockBottleneck(importlib.abc.MetaPathFinder):
         return None
 
 sys.meta_path.insert(0, BlockBottleneck())
-from error_metrics.core import ErrorMetrics, bn
+from error_metrics import ErrorMetrics
+from error_metrics.core import bn
 import numpy as np
 assert bn is np
 assert ErrorMetrics([1, 2], [1, 1]).mean_absolute_error() == 0.5

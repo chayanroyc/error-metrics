@@ -131,10 +131,14 @@ class ErrorMetrics:
         x_mean = bn.nanmean(x)
         y_mean = bn.nanmean(y)
         denominator = bn.nansum((x - x_mean) ** 2)
+        if denominator == 0 or not np.isfinite(denominator):
+            return np.nan, np.nan
         numerator = bn.nansum((x - x_mean) * (y - y_mean))
         b1 = _safe_divide(numerator, denominator)
         b0 = y_mean - b1 * x_mean
         ss_total = bn.nansum((y - y_mean) ** 2)
+        if ss_total == 0 or not np.isfinite(ss_total):
+            return b1, np.nan
         ss_residual = bn.nansum((y - (b0 + b1 * x)) ** 2)
         r2 = 1 - _safe_divide(ss_residual, ss_total)
         return b1, r2

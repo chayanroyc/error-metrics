@@ -1063,6 +1063,18 @@ class ErrorMetrics:
         """Calculate Systematic Bias. Available through msd_decomposition()."""
         return bn.nanmean(self.diff) ** 2
 
+    @MetricRegistry.register("Mean Bias Factor", "MBF", "Ratio of mean prediction to mean observation")
+    def mean_bias_factor(self) -> float:
+        """Return mean prediction divided by mean observation."""
+        if self.pred_mean <= 0 or self.obs_mean <= 0:
+            raise ValueError("MBF requires strictly positive prediction and observation means.")
+        return float(self.pred_mean / self.obs_mean)
+
+    @MetricRegistry.register("Relative Mean Bias Factor", "RMBF", "Absolute deviation of MBF from one")
+    def relative_mean_bias_factor(self) -> float:
+        """Return the absolute deviation of MBF from one."""
+        return float(np.abs(self.mean_bias_factor() - 1.0))
+
     @MetricRegistry.register("Normalized Mean Bias Factor", "NMBF", "Measure of bias factor")
     def nmbf(self) -> float:
         """Calculate Normalized Mean Bias Factor."""

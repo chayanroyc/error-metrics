@@ -62,3 +62,17 @@ def test_existing_fb_fae_and_new_registry_mappings_are_distinct():
         "MFB": "mean_fractional_bias", "MFE": "mean_fractional_error",
         "FB": "fb", "FAE": "fae",
     }
+
+
+def test_phi_identical_and_separated_histograms():
+    assert ErrorMetrics([0, 1, 2], [0, 1, 2]).phi(3) == 1.0
+    assert ErrorMetrics([0, 0], [10, 10]).phi(2) == 0.0
+
+
+def test_phi_bounds_validation_and_registry():
+    metrics = ErrorMetrics([0, 1, 3], [0, 2, 3])
+    assert 0.0 <= metrics.phi(3) <= 1.0
+    for invalid in (0, -1, 1.5, True):
+        with pytest.raises(ValueError, match="integer >= 1"):
+            metrics.phi(invalid)
+    assert MetricRegistry.get_metric("PHI").function.__name__ == "phi"

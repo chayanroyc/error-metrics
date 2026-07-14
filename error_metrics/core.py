@@ -1014,6 +1014,18 @@ class ErrorMetrics:
             return 100 * _safe_divide(ksi, a_critical)
         return ksi
 
+    @MetricRegistry.register("Percentage of Histogram Intersection", "PHI", "Histogram-overlap distribution similarity")
+    def phi(self, n_bins: int = 10) -> float:
+        """Return normalized histogram intersection as a fraction in [0, 1]."""
+        if isinstance(n_bins, bool) or not isinstance(n_bins, int) or n_bins < 1:
+            raise ValueError("n_bins must be an integer >= 1")
+        edges = np.histogram_bin_edges(np.concatenate((self.predictions, self.observations)), bins=n_bins)
+        pred_counts, _ = np.histogram(self.predictions, bins=edges)
+        obs_counts, _ = np.histogram(self.observations, bins=edges)
+        pred_probability = pred_counts / pred_counts.sum()
+        obs_probability = obs_counts / obs_counts.sum()
+        return float(np.sum(np.minimum(pred_probability, obs_probability)))
+
     @MetricRegistry.register("Over-estimation Metric", "OVER", "Measure of over-estimation")
     def over_metric(self, normed: bool = True) -> float:
         """

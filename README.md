@@ -17,8 +17,9 @@ and environmental metrics through one consistent API.
 
 - [Quick start](#quick-start)
 - [Choosing a metric](#which-metric-should-i-use)
-- [API patterns](#public-api)
-- [Metric reference](#available-metrics)
+- [API patterns](#api-patterns)
+- [Metric families](#metric-families)
+- [Metric reference](#complete-metric-reference)
 - [Important behavior](#input-validation-and-missing-values)
 - [Contributing](#contributing)
 
@@ -46,11 +47,7 @@ python -m pip install --upgrade --force-reinstall "git+https://github.com/chayan
 
 ## Quick start
 
-Install directly from GitHub, then calculate three metrics in about 30 seconds:
-
-```bash
-python -m pip install "git+https://github.com/chayanroyc/error-metrics.git"
-```
+Start with a direct method call when you need one metric:
 
 ```python
 from error_metrics import ErrorMetrics
@@ -59,15 +56,14 @@ predictions = [1.2, 1.8, 3.2, 3.9, 5.1]
 observations = [1.0, 2.0, 3.0, 4.0, 5.0]
 metrics = ErrorMetrics(predictions, observations)
 
-print(metrics.get_metrics(["MAE", "RMSE", "MBF"]))
+print(metrics.mean_absolute_error())
 ```
 
 ```text
-{'MAE': 0.16, 'RMSE': 0.17, 'MBF': 1.01}
+0.15999999999999998
 ```
 
-Direct calls use Python method names, such as `mean_absolute_error`. Registry
-dispatch through `get_metrics` uses metric abbreviations, such as `MAE`.
+Direct methods use Python method names and return raw floating-point values.
 
 ## Which metric should I use?
 
@@ -105,7 +101,94 @@ Need distribution similarity? → PHI / SUSE / KLD / AD
 Need domain efficiency? → NSE / KGE family / DE
 ```
 
-## Available Metrics
+## API patterns
+
+The quick-start dataset is reused below so the calling patterns are easy to
+compare.
+
+### 1. Call one metric directly
+
+Use a method such as `metrics.mean_absolute_error()` when you want its raw
+result or need to pass metric-specific parameters.
+
+### 2. Dispatch several metrics by abbreviation
+
+Pass registered abbreviations to `get_metrics`:
+
+```python
+print(metrics.get_metrics(["MAE", "RMSE", "MBF"]))
+```
+
+```text
+{'MAE': 0.16, 'RMSE': 0.17, 'MBF': 1.01}
+```
+
+`get_metrics` rounds results to two decimal places by default. Set
+`round_factor` to choose another precision, for example
+`metrics.get_metrics(["MAE"], round_factor=3)`. It does not accept arbitrary
+metric-specific keywords.
+
+### 3. Pass parameters and inspect the registry
+
+Parameterized metrics are normally called directly. Registry inspection helps
+translate an abbreviation into its method name:
+
+```python
+from error_metrics import MetricRegistry
+
+print(metrics.phi(n_bins=5))
+print(metrics.nmaep(p=2.0))
+
+registered = MetricRegistry.get_all_metrics()
+print(len(registered))
+print(registered["MAE"].function.__name__)
+```
+
+```text
+0.8
+0.055777335102271695
+89
+mean_absolute_error
+```
+
+`get_metrics` cannot forward `n_bins`, `p`, or other metric-specific keyword
+arguments, so use direct calls when changing those defaults.
+
+### Tuple-valued metrics
+
+Some direct methods return several related components. For example, `rnp`
+returns the overall non-parametric KGE followed by its rank-correlation,
+flow-duration-curve, and mean-ratio components:
+
+```python
+print(metrics.rnp())
+```
+
+```text
+(0.9716666666666666, 0.9999999999999999, 0.975, 1.0133333333333334)
+```
+
+The tuple is `(RNP, r, alpha, beta)`. Abbreviation dispatch preserves a tuple
+as the value associated with `RNP`; it does not create separate component keys.
+
+## Metric families
+
+Use this compact index to narrow the complete registry before consulting each
+method's requirements:
+
+| Family | Relevant abbreviations |
+| --- | --- |
+| Core error | `MAE`, `MedAE`, `RMSE`, `ME`, `MAGE`, `RMSD`, `MAD`, `SD`, `RSE`, `CRMSE`, `MSLE`, `CRPS` |
+| Normalized / relative | `NMSE`, `RE`, `MASE`, `MNAE`, `RAE`, `RED`, `iqRMSE`, `NMAEp`, `NAE`, `U2` |
+| Bias | `MB`, `CRM`, `MNB`, `FB`, `MFB`, `MFE`, `GMB`, `MBD`, `MBF`, `RMBF`, `NMBF`, `RNMBF` |
+| Correlation / agreement | `R`, `SpearmanR`, `KendallTau`, `LCCC`, `R2`, `CI`, `WIA`, `WIAr`, `BM`, `dCor`, `lambda` |
+| Efficiency / environmental | `EC`, `NSE`, `NNSE`, `VAF`, `KGE`, `KGE2012`, `KGEdp`, `DE`, `LME`, `LCEf`, `LCE`, `RNP`, `TSS`, `SS` |
+| Distribution / statistical | `KSI`, `PHI`, `SUSE`, `AD`, `KLD`, `IQR`, `STD`, `nESkew`, `nEKurt`, `Gini` |
+| Percentage | `MAAPE`, `FAC2`, `MPE`, `MAPE`, `sMAPE` |
+| Trend / direction | `TAcc`, `PCD`, `SBF` |
+| Diagnostic / decomposition | `A10`, `U95`, `TS`, `OVER`, `CPI`, `FoM`, `MSDdec`, `SMA`, `MEAN`, `MEDIAN` |
+
+## Complete metric reference
 
 The registry below is the authoritative dispatch reference. Range and ideal
 values describe the implementation where a universal interpretation is
@@ -234,39 +317,6 @@ The seven recovered registry metrics use these definitions:
   It requires integer `n_bins >= 1`. The common bins span the combined inputs;
   the separate bins are computed from each input independently. Here `H` is
   natural-log Shannon entropy of the nonzero histogram probabilities.
-
-## Public API
-
-Call a metric directly by its method name when you need one result:
-
-```python
-mae = metrics.mean_absolute_error()
-rmse = metrics.root_mean_squared_error()
-```
-
-Use registered abbreviations to calculate a selected group, or calculate all
-registered metrics:
-
-```python
-selected = metrics.get_metrics(["MAE", "RMSE"])
-all_results = metrics.all_metrics()
-```
-
-Inspect the registry without creating an `ErrorMetrics` instance:
-
-```python
-from error_metrics import MetricRegistry
-
-registered_metrics = MetricRegistry.get_all_metrics()
-```
-
-Methods with parameters are called directly. For example:
-
-```python
-phi_score = metrics.phi(n_bins=10)
-normalized_error = metrics.nmaep(p=2.0)
-suse_score = metrics.suse(n_bins=10)
-```
 
 ## Input validation and missing values
 

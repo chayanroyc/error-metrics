@@ -7,6 +7,18 @@ START = "<!-- metric-reference:start -->"
 END = "<!-- metric-reference:end -->"
 
 
+def test_readme_has_guided_sections():
+    text = README.read_text(encoding="utf-8")
+    for heading in (
+        "## Quick start",
+        "## Which metric should I use?",
+        "## API patterns",
+        "## Metric families",
+        "## Complete metric reference",
+    ):
+        assert heading in text
+
+
 def test_readme_metric_reference_matches_registry():
     text = README.read_text(encoding="utf-8")
     table = text.split(START, 1)[1].split(END, 1)[0]

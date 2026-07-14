@@ -62,8 +62,15 @@ class ErrorMetrics:
             predictions: Array-like of predicted values
             observations: Array-like of observed values
         """
-        self.predictions = np.array(predictions, dtype=float).ravel()
-        self.observations = np.array(observations, dtype=float).ravel()
+        predictions = np.asarray(predictions, dtype=float)
+        observations = np.asarray(observations, dtype=float)
+        if predictions.shape != observations.shape:
+            raise ValueError(
+                "predictions and observations must have the same shape; got "
+                f"{predictions.shape} and {observations.shape}."
+            )
+        self.predictions = predictions.ravel()
+        self.observations = observations.ravel()
         self._preprocess_data()
         
         self.N = len(self.predictions)

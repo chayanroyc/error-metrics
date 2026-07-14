@@ -279,7 +279,7 @@ If you use Error Metrics in research, cite the repository:
 
 ```bibtex
 @software{error_metrics_library,
-  author = {Roy, Chayan},
+  author = {Roychoudhury, Chayan},
   title = {Error Metrics Library},
   url = {https://github.com/chayanroyc/error-metrics}
 }

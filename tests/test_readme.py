@@ -1,0 +1,32 @@
+from pathlib import Path
+
+from error_metrics import MetricRegistry
+
+README = Path(__file__).parents[1] / "README.md"
+START = "<!-- metric-reference:start -->"
+END = "<!-- metric-reference:end -->"
+
+
+def test_readme_metric_reference_matches_registry():
+    text = README.read_text(encoding="utf-8")
+    table = text.split(START, 1)[1].split(END, 1)[0]
+    rows = [line for line in table.splitlines() if line.startswith("| `")]
+    cells = [
+        [cell.strip() for cell in row.strip("|").split("|")]
+        for row in rows
+    ]
+    abbreviations = [row[0].strip("`") for row in cells]
+    documented = {
+        row[0].strip("`"): row[2].strip("`")
+        for row in cells
+    }
+    registered = [
+        (key, info.function.__name__)
+        for key, info in MetricRegistry.get_all_metrics().items()
+    ]
+
+    assert len(rows) == 89
+    assert all(len(row) == 6 for row in cells)
+    assert len(abbreviations) == len(set(abbreviations))
+    assert abbreviations == [key for key, _ in registered]
+    assert documented == dict(registered)

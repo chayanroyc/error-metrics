@@ -6,7 +6,7 @@ Choose and compute error metrics through one Python API.
 
 ![Python 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue)
 ![89 metrics](https://img.shields.io/badge/metrics-89-blue)
-![68 tests](https://img.shields.io/badge/tests-68-blue)
+![69 tests](https://img.shields.io/badge/tests-69-blue)
 [![MIT License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 </div>
@@ -288,15 +288,6 @@ supported; otherwise they are marked context-dependent.
 | `PCD` | Prediction of Change in Direction | `prediction_of_change_in_direction` | Prediction of Change in Direction | [0, 1] | `1` |
 <!-- metric-reference:end -->
 
-### Interpreting common errors
-
-Absolute and squared errors are all minimized at zero, but they emphasize
-mistakes differently. MAE and MedAE stay in the data's units; MedAE is less
-sensitive to isolated outliers. RMSE and CRMSE weight large errors more heavily,
-while CRMSE removes the mean bias before measuring scatter. Percentage and
-normalized errors can ease comparisons across scales, but their denominators
-and input restrictions matter.
-
 ### Interpreting the recovered metrics
 
 The seven recovered registry metrics use these definitions:
@@ -323,12 +314,19 @@ The seven recovered registry metrics use these definitions:
 `ErrorMetrics` converts both inputs to float arrays, requires their original
 shapes to match, and then stores them as one-dimensional arrays. A whole pair
 is removed during initialization if either member is non-finite; initialization
-fails if no valid pairs remain. Individual metrics may impose additional
-positivity, nonzero-denominator, or parameter restrictions.
+fails if no valid pairs remain.
 
-NaN handling is metric-specific. Although many calculations use NaN-aware
-NumPy or Bottleneck operations, callers should check the documentation and
-result of the metric they use rather than assume one policy for every metric.
+- Restrictions are metric-specific: for example, `MBF` requires strictly
+  positive means, while `MFB` and `MFE` require nonnegative paired values.
+- A zero denominator may produce `NaN` or trigger a metric-specific validation
+  error. Check the selected method's requirements, especially for constant
+  series, zero means, percentage metrics, and normalized metrics.
+- Parameters are validated by the methods that accept them. For example,
+  `PHI` and `SUSE` require an integer `n_bins >= 1`, and `NMAEp` requires a
+  finite `p > 0`.
+- Metric choice is scale- and outlier-sensitive. Normalized metrics can support
+  cross-scale comparisons but change interpretation; RMSE emphasizes large
+  errors, while MedAE is more robust to isolated outliers.
 
 ## Performance
 
@@ -346,8 +344,10 @@ python -m build
 
 ## Adding New Metrics
 
-Add the method to `ErrorMetrics` and register its unique abbreviation. For a
-scalar metric:
+The complete example below shows the method, registry identity and description,
+NumPy calculation, direct calculation test, and registry mapping test for a
+scalar metric. It is a contributor example only and is not part of the
+installed registry.
 
 ```python
 @MetricRegistry.register("Mean Signed Cubic Error", "MSCE", "Mean cubed residual")
@@ -355,21 +355,28 @@ def mean_signed_cubic_error(self) -> float:
     return float(np.nanmean((self.predictions - self.observations) ** 3))
 ```
 
-Methods may accept parameters when direct callers need to control a
-calculation:
-
 ```python
-@MetricRegistry.register("Threshold Exceedance Rate", "TER", "Fraction above a threshold")
-def threshold_exceedance_rate(self, threshold: float = 1.0) -> float:
-    if not np.isfinite(threshold) or threshold < 0:
-        raise ValueError("threshold must be finite and >= 0")
-    return float(np.nanmean(np.abs(self.predictions - self.observations) > threshold))
+def test_mean_signed_cubic_error():
+    metrics = ErrorMetrics([2.0, 4.0], [1.0, 2.0])
+
+    assert metrics.mean_signed_cubic_error() == 4.5
+
+
+def test_mean_signed_cubic_error_registry_mapping():
+    metric = MetricRegistry.get_metric("MSCE")
+
+    assert metric.name == "Mean Signed Cubic Error"
+    assert metric.function.__name__ == "mean_signed_cubic_error"
+    assert metric.description == "Mean cubed residual"
 ```
 
-Parameterized metrics should be called directly when nondefault arguments are
-needed. Each new metric needs direct calculation and validation tests, plus a
-test that confirms its registry mapping or dispatch behavior. These snippets
-are contributor examples only; they are not part of the installed package.
+Before opening a pull request:
+
+- [ ] Implement the method on `ErrorMetrics`.
+- [ ] Register a unique name, abbreviation, and description.
+- [ ] Define input, denominator, and parameter restrictions.
+- [ ] Add direct calculation, validation, and registry dispatch or mapping tests.
+- [ ] Run the full test suite and build using the development commands above.
 
 ## Contributing
 

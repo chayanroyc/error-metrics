@@ -472,6 +472,24 @@ class ErrorMetrics:
         """Calculate Fractional Absolute Error."""
         return 2 * bn.nanmean(np.abs(self.diff) / self.sum_)
 
+    @MetricRegistry.register("Mean Fractional Bias", "MFB", "Pointwise mean fractional bias")
+    def mean_fractional_bias(self) -> float:
+        """Return pointwise mean fractional bias for nonnegative data."""
+        if np.any(self.predictions < 0) or np.any(self.observations < 0):
+            raise ValueError("MFB requires nonnegative predictions and observations.")
+        denominator = self.predictions + self.observations
+        ratio = np.divide(2.0 * self.diff, denominator, out=np.zeros_like(self.diff), where=denominator != 0)
+        return float(bn.nanmean(ratio))
+
+    @MetricRegistry.register("Mean Fractional Error", "MFE", "Pointwise mean fractional absolute error")
+    def mean_fractional_error(self) -> float:
+        """Return pointwise mean fractional absolute error for nonnegative data."""
+        if np.any(self.predictions < 0) or np.any(self.observations < 0):
+            raise ValueError("MFE requires nonnegative predictions and observations.")
+        denominator = self.predictions + self.observations
+        ratio = np.divide(2.0 * np.abs(self.diff), denominator, out=np.zeros_like(self.diff), where=denominator != 0)
+        return float(bn.nanmean(ratio))
+
     @MetricRegistry.register("Mean Absolute Gross Error", "MAGE", "Mean Absolute Gross Error")
     def mean_absolute_gross_error(self) -> float:
         """

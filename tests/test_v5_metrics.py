@@ -28,3 +28,37 @@ def test_mean_bias_factors_require_positive_means(predictions, observations):
 def test_mean_bias_factor_registry_mappings():
     assert MetricRegistry.get_metric("MBF").function.__name__ == "mean_bias_factor"
     assert MetricRegistry.get_metric("RMBF").function.__name__ == "relative_mean_bias_factor"
+
+
+def test_mean_fractional_metrics_match_hand_calculation():
+    metrics = ErrorMetrics([2.0, 4.0], [1.0, 2.0])
+    assert np.isclose(metrics.mean_fractional_bias(), 2.0 / 3.0)
+    assert np.isclose(metrics.mean_fractional_error(), 2.0 / 3.0)
+
+
+def test_mean_fractional_metrics_handle_identical_zero_pair():
+    metrics = ErrorMetrics([0.0, 1.0], [0.0, 1.0])
+    assert metrics.mean_fractional_bias() == 0.0
+    assert metrics.mean_fractional_error() == 0.0
+
+
+def test_mean_fractional_metrics_reject_negatives_without_mutation():
+    metrics = ErrorMetrics([-0.5, 2.0], [1.0, 1.0])
+    pred, obs = metrics.predictions.copy(), metrics.observations.copy()
+    with pytest.raises(ValueError, match="nonnegative"):
+        metrics.mean_fractional_bias()
+    with pytest.raises(ValueError, match="nonnegative"):
+        metrics.mean_fractional_error()
+    assert np.array_equal(metrics.predictions, pred)
+    assert np.array_equal(metrics.observations, obs)
+
+
+def test_existing_fb_fae_and_new_registry_mappings_are_distinct():
+    metrics = ErrorMetrics([-0.5, 2.0], [1.0, 1.0])
+    assert np.isclose(metrics.fb(), -8.0 / 3.0)
+    assert np.isclose(metrics.fae(), 10.0 / 3.0)
+    mappings = {k: v.function.__name__ for k, v in MetricRegistry.get_all_metrics().items()}
+    assert {k: mappings[k] for k in ("MFB", "MFE", "FB", "FAE")} == {
+        "MFB": "mean_fractional_bias", "MFE": "mean_fractional_error",
+        "FB": "fb", "FAE": "fae",
+    }

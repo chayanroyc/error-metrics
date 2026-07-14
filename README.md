@@ -321,9 +321,9 @@ fails if no valid pairs remain.
 - A zero denominator may produce `NaN` or trigger a metric-specific validation
   error. Check the selected method's requirements, especially for constant
   series, zero means, percentage metrics, and normalized metrics.
-- Parameters are validated by the methods that accept them. For example,
-  `PHI` and `SUSE` require an integer `n_bins >= 1`, and `NMAEp` requires a
-  finite `p > 0`.
+- Some parameterized methods validate their parameters. For example, `PHI` and
+  `SUSE` require an integer `n_bins >= 1`, and `NMAEp` requires a finite
+  `p > 0`.
 - Metric choice is scale- and outlier-sensitive. Normalized metrics can support
   cross-scale comparisons but change interpretation; RMSE emphasizes large
   errors, while MedAE is more robust to isolated outliers.

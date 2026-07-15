@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 30
-- Pending: 59
+- Completed: 40
+- Pending: 49
 
 ## bias
 
@@ -17,6 +17,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MFB` | Mean Fractional Bias | `mean_fractional_bias` | complete |
 | `GMB` | Geometric Mean Bias | `geometric_mean_bias` | complete |
 | `MBD` | Mean Bias Difference | `mean_bias_difference` | complete |
+| `TS` | t-Statistic | `t_statistic` | complete |
 
 ## core error
 
@@ -27,6 +28,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `RMSE` | Root Mean Squared Error | `root_mean_squared_error` | complete |
 | `ME` | Max Error | `max_error` | complete |
 | `RMSD` | Root Mean Square Difference | `root_mean_square_difference` | complete |
+| `RSE` | Residual Standard Error | `residual_standard_error` | complete |
 
 ## correlation and agreement
 
@@ -37,6 +39,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `KendallTau` | Kendall Tau Correlation | `kendall_tau` | complete |
 | `LCCC` | Lin's Concordance Correlation | `lccc` | complete |
 | `CI` | Confidence Index | `confidence_index` | complete |
+| `SBF` | Slope of Best-Fit Line | `slope_of_best_fit_line` | complete |
 
 ## efficiency and environmental evaluation
 
@@ -45,6 +48,9 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `EV` | Explained Variance | `ev` | complete |
 | `EC` | Efficiency Coefficient | `efficiency_coefficient` | complete |
 | `R2` | Coefficient of Determination | `coefficient_of_determination` | complete |
+| `NSE` | Nash-Sutcliffe Efficiency | `nash_sutcliffe_efficiency` | complete |
+| `NNSE` | Normalized NSE | `normalized_nse` | complete |
+| `VAF` | Variance Accounted For | `variance_accounted_for` | complete |
 
 ## normalized and relative error
 
@@ -60,6 +66,10 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `FAE` | Fractional Absolute Error | `fae` | complete |
 | `MFE` | Mean Fractional Error | `mean_fractional_error` | complete |
 | `MAGE` | Mean Absolute Gross Error | `mean_absolute_gross_error` | complete |
+| `MAD` | Mean Absolute Difference | `mean_absolute_difference` | complete |
+| `SD` | Standard Deviation of Residual | `standard_deviation_of_residual` | complete |
+| `U95` | Uncertainty at 95% | `uncertainty_95` | complete |
+| `RAE` | Relative Absolute Error | `relative_absolute_error` | complete |
 
 ## percentage error
 
@@ -72,16 +82,6 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `MAD` | Mean Absolute Difference | `mean_absolute_difference` | pending |
-| `SD` | Standard Deviation of Residual | `standard_deviation_of_residual` | pending |
-| `SBF` | Slope of Best-Fit Line | `slope_of_best_fit_line` | pending |
-| `U95` | Uncertainty at 95% | `uncertainty_95` | pending |
-| `TS` | t-Statistic | `t_statistic` | pending |
-| `NSE` | Nash-Sutcliffe Efficiency | `nash_sutcliffe_efficiency` | pending |
-| `NNSE` | Normalized NSE | `normalized_nse` | pending |
-| `RAE` | Relative Absolute Error | `relative_absolute_error` | pending |
-| `VAF` | Variance Accounted For | `variance_accounted_for` | pending |
-| `RSE` | Residual Standard Error | `residual_standard_error` | pending |
 | `KGE` | Kling-Gupta Efficiency | `kling_gupta_efficiency` | pending |
 | `KGE2012` | Modified Kling-Gupta Efficiency | `modified_kling_gupta_efficiency` | pending |
 | `KGEdp` | Kling-Gupta Efficiency Double Prime | `kling_gupta_efficiency_double_prime` | pending |

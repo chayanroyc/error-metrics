@@ -392,54 +392,134 @@
       "findings": [{"type": "definition-variant", "evidence": "The implementation returns percentage relative RMSD despite the unqualified dimensional name.", "impact": "Scale and units differ from canonical RMSD.", "recommended_future_action": "Rename or document the normalization."}, {"type": "validation-gap", "evidence": "The denominator is signed rather than absolute.", "impact": "Negative-mean observations produce a negative error magnitude.", "recommended_future_action": "Document or restrict the reference domain."}]
     },
     "MAD": {
-      "status": "pending",
+      "status": "complete",
       "name": "Mean Absolute Difference",
-      "method": "mean_absolute_difference"
+      "method": "mean_absolute_difference",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, infinity), or NaN; nonnegative for positive observation means", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "100 * mean(abs(prediction - observation)) / mean(observation)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["Bottleneck nanmean", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "An exactly zero observation mean returns NaN.", "negative_inputs": "Accepted; a negative observation mean makes the result negative.", "constant_series": "Defined for a nonzero observation constant.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Mean absolute difference is the dimensional mean of absolute paired differences.", "references": [{"type": "authoritative", "title": "Goodness of Fit Metrics", "authors_or_organization": "NIST/SEMATECH", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/pri/section5/pri5992.htm", "supports": "Defines average absolute residual in response-variable units."}], "known_variants": ["MAD can instead abbreviate median absolute deviation.", "Relative variants divide by an observation scale and may report percent."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_percent_residual_metrics_use_signed_observation_mean"], "ordinary_case": "Mean absolute residual 4/3 divided by observation mean 7/3 and multiplied by 100 gives 400/7.", "edge_case": "A negative observation mean produces a negative value; a zero mean returns NaN."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime adds signed-mean normalization and factor 100 to dimensional mean absolute difference.", "impact": "Output units, scale, and range differ from the registered name.", "recommended_future_action": "Document percentage-relative normalization or rename the metric."}, {"type": "validation-gap", "evidence": "The normalizer is the signed observation mean.", "impact": "Negative means make an absolute error negative and zero means are undefined.", "recommended_future_action": "Document or validate the intended positive-mean domain."}]
     },
     "SD": {
-      "status": "pending",
+      "status": "complete",
       "name": "Standard Deviation of Residual",
-      "method": "standard_deviation_of_residual"
+      "method": "standard_deviation_of_residual",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, infinity), or NaN; nonnegative for positive observation means", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "100 * sqrt(mean(residual^2) - mean(residual)^2) / mean(observation)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["NumPy sqrt", "Bottleneck nanmean", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "An exactly zero observation mean returns NaN.", "negative_inputs": "Accepted; a negative observation mean reverses the sign.", "constant_series": "Constant residuals have zero spread when the observation mean is nonzero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Population residual standard deviation is the square root of the mean squared centered residual; regression residual standard error instead uses residual degrees of freedom.", "references": [{"type": "authoritative", "title": "numpy.std", "authors_or_organization": "NumPy maintainers", "year": 2026, "url_or_doi": "https://numpy.org/doc/stable/reference/generated/numpy.std.html", "supports": "Defines population standard deviation with divisor N when ddof is zero."}, {"type": "authoritative", "title": "Residual Standard Deviation", "authors_or_organization": "NIST/SEMATECH", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/pri/section5/pri599.htm", "supports": "Defines fitted-model residual standard deviation with degrees-of-freedom adjustment."}], "known_variants": ["Regression residual SD may be uncentered and degrees-of-freedom adjusted."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_percent_residual_metrics_use_signed_observation_mean"], "ordinary_case": "Residual population SD sqrt(14)/3 divided by 7/3 and multiplied by 100 gives 100 sqrt(14)/7.", "edge_case": "Residuals [3,7] have population SD 2; division by observation mean -2 gives -100."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime computes percent-normalized population residual spread without a degrees-of-freedom correction.", "impact": "It differs from fitted-model residual standard deviation and is insensitive to constant bias.", "recommended_future_action": "Document the population convention, normalization, and distinction from RSE."}, {"type": "validation-gap", "evidence": "The denominator is the signed observation mean.", "impact": "Negative means reverse sign and zero means return NaN.", "recommended_future_action": "Document or validate the positive-mean domain."}]
     },
     "SBF": {
-      "status": "pending",
+      "status": "complete",
       "name": "Slope of Best-Fit Line",
-      "method": "slope_of_best_fit_line"
+      "method": "slope_of_best_fit_line",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, infinity), or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "sum((prediction - mean(prediction)) * (observation - mean(observation))) / sum((observation - mean(observation))^2)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["Bottleneck nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "Constant observations make the centered denominator zero and return NaN.", "negative_inputs": "Accepted; negative association can produce a negative slope.", "constant_series": "Constant observations return NaN; constant predictions with varying observations return zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The OLS-with-intercept slope of predictions on observations is centered cross-product divided by centered observation sum of squares.", "references": [{"type": "authoritative", "title": "Linear Least Squares Regression", "authors_or_organization": "NIST/SEMATECH", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/pmd/section1/pmd141.htm", "supports": "Derives least-squares line estimates by minimizing squared residuals."}], "known_variants": ["Axis orientation and whether an intercept is fitted vary."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_constant_observations_make_centered_denominators_undefined"], "ordinary_case": "Centered cross-product 1 divided by observation sum of squares 14/3 gives 3/14.", "edge_case": "Constant observations make regression slope undefined and return NaN."},
+      "findings": [{"type": "consistent", "evidence": "Runtime matches the OLS-with-intercept slope with observations as x and predictions as y.", "impact": "Ordinary slope values have the expected interpretation.", "recommended_future_action": "Document axis orientation and constant-observation NaN."}, {"type": "documentation-gap", "evidence": "A slope of one does not establish agreement when the unreported fitted intercept is nonzero.", "impact": "Users may overinterpret the ideal value.", "recommended_future_action": "Document that slope assesses proportional response, not agreement alone."}]
     },
     "U95": {
-      "status": "pending",
+      "status": "complete",
       "name": "Uncertainty at 95%",
-      "method": "uncertainty_95"
+      "method": "uncertainty_95",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity), or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "1.96 * sqrt(SD^2 + RMSD^2), using this package's percentage-normalized SD and RMSD", "preprocessing": ["Use shared finite-pair preprocessing.", "Call standard_deviation_of_residual and root_mean_square_difference."], "dependencies": ["SD", "RMSD", "NumPy sqrt"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed before component evaluation.", "zero_inputs_or_denominators": "A zero observation mean makes both components and U95 NaN.", "negative_inputs": "Accepted; squared signed components yield a nonnegative result when finite.", "constant_series": "Defined for nonzero observation constants; exact agreement gives zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "A model-evaluation convention defines U95 as 1.96 times the square root of SD squared plus RMSE squared; it is a composite index, not a general calibrated confidence interval.", "references": [{"type": "primary", "title": "Uncertainty analysis of empirical models", "authors_or_organization": "Scientific Reports authors", "year": 2025, "url_or_doi": "https://doi.org/10.1038/s41598-025-20304-2", "supports": "Uses U95 = 1.96 sqrt(SD^2 + RMSE^2) and describes 1.96 as the normal 95% factor."}], "known_variants": ["Components may be dimensional rather than percentage normalized."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_uncertainty_and_t_statistic_follow_composed_percent_formulas"], "ordinary_case": "Combining SD 100 sqrt(14)/7 and RMSD 300 sqrt(2)/7 gives 112 sqrt(2).", "edge_case": "A negative observation mean makes signed components negative, but squaring produces finite nonnegative U95."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime uses percentage-normalized components rather than dimensional SD and RMSE.", "impact": "Output is a relative percent composite rather than data-unit uncertainty.", "recommended_future_action": "Document component units and formula."}, {"type": "documentation-gap", "evidence": "The name does not state the assumptions required for 95% coverage.", "impact": "Users may interpret the index as a calibrated interval.", "recommended_future_action": "Describe U95 as a model-evaluation composite, not guaranteed coverage."}]
     },
     "TS": {
-      "status": "pending",
+      "status": "complete",
       "name": "t-Statistic",
-      "method": "t_statistic"
+      "method": "t_statistic",
+      "category": "bias",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity), or NaN", "ideal_value": "0 conceptually; exact agreement returns NaN"},
+      "implemented_behavior": {"formula": "sqrt((N - 1) * MBD^2 / (RMSD^2 - MBD^2)), using package percentage MBD and RMSD", "preprocessing": ["Use shared finite-pair preprocessing.", "Call mean_bias_difference and root_mean_square_difference."], "dependencies": ["MBD", "RMSD", "_safe_divide", "NumPy sqrt"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed before component evaluation.", "zero_inputs_or_denominators": "A zero observation mean, exact agreement, one pair, or zero residual variance returns NaN.", "negative_inputs": "Accepted; common signed normalization cancels when finite.", "constant_series": "Constant nonzero residuals make the variance denominator zero and return NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "A specialized model-evaluation t statistic is sqrt((n-1) MBE^2 / (RMSE^2-MBE^2)).", "references": [{"type": "primary", "title": "Statistical procedures for the evaluation of evapotranspiration computing models", "authors_or_organization": "Jacovides and Kontoyiannis", "year": 1995, "url_or_doi": "https://doi.org/10.1016/0378-3774(95)01152-9", "supports": "Proposes the MBE/RMSE t-statistic formula for model evaluation."}], "known_variants": ["Generic t-statistics use other estimators and standard errors."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_perfect_varying_series_reach_implemented_ideals", "tests/audit/test_characterization_batch_4.py::test_uncertainty_and_t_statistic_follow_composed_percent_formulas"], "ordinary_case": "With N=3, MBD^2=40000/49 and RMSD^2-MBD^2=140000/49, TS is 2/sqrt(7).", "edge_case": "Exact agreement supplies 0/0 and returns NaN rather than conceptual ideal zero."},
+      "findings": [{"type": "consistent", "evidence": "Runtime algebra matches the cited specialized MBE/RMSE statistic when components are finite.", "impact": "Ordinary values follow the published convention.", "recommended_future_action": "Document the application-specific meaning and assumptions."}, {"type": "possible-defect", "evidence": "Exact agreement yields 0/0 and NaN despite a documented ideal of zero.", "impact": "The best possible input does not return the stated ideal.", "recommended_future_action": "Decide separately whether exact zero residuals should map to zero."}]
     },
     "NSE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Nash-Sutcliffe Efficiency",
-      "method": "nash_sutcliffe_efficiency"
+      "method": "nash_sutcliffe_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, 1], or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1 - sum((prediction - observation)^2) / sum((observation - mean(observation))^2)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["Bottleneck nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "Constant observations make the efficiency denominator zero and return NaN.", "negative_inputs": "Accepted without domain restriction.", "constant_series": "Constant observations, including exact constant agreement, return NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "NSE is one minus residual sum of squares divided by observed deviations from their mean.", "references": [{"type": "primary", "title": "River flow forecasting through conceptual models part I", "authors_or_organization": "Nash and Sutcliffe", "year": 1970, "url_or_doi": "https://doi.org/10.1016/0022-1694(70)90255-6", "supports": "Introduces the efficiency based on squared model errors relative to observed variance."}], "known_variants": []},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics", "tests/test_error_metrics.py::test_metric_bounds"], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_constant_observations_make_centered_denominators_undefined"], "ordinary_case": "Residual sum of squares 6 divided by observed centered sum 14/3 gives NSE -2/7.", "edge_case": "Constant observations make the reference denominator zero and return NaN."},
+      "findings": [{"type": "consistent", "evidence": "Runtime matches the Nash-Sutcliffe squared-error efficiency formula.", "impact": "Ordinary behavior and range are canonical.", "recommended_future_action": "Document constant-observation NaN."}]
     },
     "NNSE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Normalized NSE",
-      "method": "normalized_nse"
+      "method": "normalized_nse",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "(0, 1], or NaN for canonical finite NSE inputs", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1 / (2 - NSE)", "preprocessing": ["Use shared finite-pair preprocessing.", "Call nash_sutcliffe_efficiency."], "dependencies": ["NSE", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed before NSE evaluation.", "zero_inputs_or_denominators": "Undefined NSE from constant observations propagates NaN.", "negative_inputs": "Accepted without domain restriction.", "constant_series": "Constant observations return NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "NNSE is the monotone transform 1/(2-NSE), mapping finite NSE at most one into (0,1].", "references": [{"type": "primary", "title": "Hydrological model evaluation using normalized NSE", "authors_or_organization": "Hydrology and Earth System Sciences authors", "year": 2019, "url_or_doi": "https://hess.copernicus.org/articles/23/4323/2019/", "supports": "Documents the 1/(2-NSE) normalization and its interpretation."}], "known_variants": ["Other normalizations of efficiency exist."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_constant_observations_make_centered_denominators_undefined"], "ordinary_case": "NSE -2/7 transforms to 1/(2+2/7)=7/16.", "edge_case": "Undefined NSE on constant observations propagates NaN."},
+      "findings": [{"type": "consistent", "evidence": "Runtime exactly applies the published monotone NSE transform.", "impact": "Finite canonical NSE values map to the stated normalized interval.", "recommended_future_action": "Document that NSE zero maps to 0.5 and constant targets remain undefined."}, {"type": "documentation-gap", "evidence": "The docstring calls the transformation more objective without source support.", "impact": "A mathematical remapping may be mistaken for an improved evidential criterion.", "recommended_future_action": "Remove or substantiate the objectivity claim in a separately approved documentation change."}]
     },
     "RAE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Relative Absolute Error",
-      "method": "relative_absolute_error"
+      "method": "relative_absolute_error",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity), or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sqrt(sum((prediction - observation)^2)) / sqrt(sum(observation^2))", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["NumPy sqrt", "Bottleneck nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "An all-zero observation vector makes the denominator zero and returns NaN.", "negative_inputs": "Accepted; squares remove sign.", "constant_series": "Defined for nonzero constant observations.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Conventional RAE is sum of absolute errors divided by sum of absolute deviations of observations from their mean.", "references": [{"type": "authoritative", "title": "Relative Absolute Error", "authors_or_organization": "mlr3measures maintainers", "year": 2026, "url_or_doi": "https://mlr3measures.mlr-org.com/reference/rae.html", "supports": "Defines RAE relative to the mean-prediction absolute-error baseline."}], "known_variants": ["Relative L2 error uses Euclidean norms instead of absolute-error sums."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_efficiency_and_relative_error_denominator_failures"], "ordinary_case": "Euclidean error norm sqrt(6) divided by observation norm sqrt(21) gives sqrt(2/7).", "edge_case": "An all-zero observation vector returns NaN regardless of nonzero errors."},
+      "findings": [{"type": "possible-defect", "evidence": "Runtime computes relative L2 error, not conventional relative absolute error against the observed-mean baseline.", "impact": "Ranking, denominator failure, and numeric values differ from RAE.", "recommended_future_action": "Confirm intended metric before any separately approved rename or formula change."}, {"type": "documentation-gap", "evidence": "The docstring says RMSE over root sum of squared observations, while the numerator is root sum of squares.", "impact": "The stated formula differs by a factor involving sample size.", "recommended_future_action": "Correct the formula description separately."}]
     },
     "VAF": {
-      "status": "pending",
+      "status": "complete",
       "name": "Variance Accounted For",
-      "method": "variance_accounted_for"
+      "method": "variance_accounted_for",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, infinity), or NaN", "ideal_value": "100"},
+      "implemented_behavior": {"formula": "100 * sum((observation - mean(observation)) * (prediction - mean(prediction))) / sum((observation - mean(observation))^2)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["Bottleneck nanmean and nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed.", "zero_inputs_or_denominators": "Constant observations make the denominator zero and return NaN.", "negative_inputs": "Accepted; negative fitted slopes produce negative values.", "constant_series": "Constant observations return NaN; constant predictions with varying observations return zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Variance accounted for is commonly 100 times one minus residual variance divided by observed variance.", "references": [{"type": "authoritative", "title": "explained_variance_score", "authors_or_organization": "scikit-learn maintainers", "year": 2026, "url_or_doi": "https://scikit-learn.org/stable/modules/generated/sklearn.metrics.explained_variance_score.html", "supports": "Defines explained variance as 1 - Var(y_true-y_pred)/Var(y_true) and documents constant-target behavior."}], "known_variants": ["Some fields use related R-squared or squared-correlation definitions."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_constant_observations_make_centered_denominators_undefined"], "ordinary_case": "Centered cross-product 1 divided by observed centered sum 14/3 and multiplied by 100 gives 150/7.", "edge_case": "Constant observations make the denominator zero and return NaN."},
+      "findings": [{"type": "possible-defect", "evidence": "Runtime equals 100 times SBF rather than 100 * (1 - Var(error)/Var(observation)).", "impact": "It can exceed 100 and measures regression slope, not accounted variance.", "recommended_future_action": "Confirm intended convention before any separately approved formula change."}, {"type": "duplicate-or-overlap", "evidence": "For every accepted input, VAF is algebraically exactly 100 * SBF.", "impact": "Two names expose the same slope information on different scales.", "recommended_future_action": "Document the overlap and review registry intent."}]
     },
     "RSE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Residual Standard Error",
-      "method": "residual_standard_error"
+      "method": "residual_standard_error",
+      "category": "core error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) for positive degrees of freedom; ZeroDivisionError at zero degrees of freedom; NaN for negative degrees of freedom", "ideal_value": "0 when degrees of freedom are positive"},
+      "implemented_behavior": {"formula": "sqrt(sum((prediction - observation)^2) / (N - p - 1))", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["Bottleneck nansum", "NumPy sqrt"]},
+      "parameters": [{"name": "p", "default": 1, "accepted_types": ["Values supporting subtraction from an integer"], "validation": "None; p is subtracted with one intercept from filtered N.", "invalid_behavior": "Values producing zero degrees of freedom raise ZeroDivisionError; negative degrees of freedom return NaN with a RuntimeWarning; incompatible types raise TypeError."}],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed and N is the surviving count.", "zero_inputs_or_denominators": "Zero degrees of freedom raises ZeroDivisionError because scalar division occurs before NumPy sqrt.", "negative_inputs": "Negative data are accepted; negative p is also accepted and inflates degrees of freedom.", "constant_series": "Defined when degrees of freedom are positive; exact agreement gives zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Residual standard error is sqrt(RSS/(n-k)); with p predictors and an intercept, k=p+1.", "references": [{"type": "authoritative", "title": "Residual standard deviation", "authors_or_organization": "NIST/SEMATECH", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/pmd/section4/pmd431.htm", "supports": "Defines residual standard deviation using residual sum of squares and n minus fitted coefficients."}], "known_variants": ["Some APIs define p as total fitted coefficients rather than predictors excluding intercept."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_4.py::test_batch_4_metrics_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_4.py::test_residual_standard_error_degrees_of_freedom_are_unvalidated"], "ordinary_case": "RSS 6 divided by N-p-1 = 1 at default p=1 gives sqrt(6).", "edge_case": "For N=3, p=2 raises ZeroDivisionError and p=3 returns NaN with a RuntimeWarning."},
+      "findings": [{"type": "consistent", "evidence": "For valid predictor count and same-sample fitted predictions, runtime matches sqrt(RSS/(n-p-1)).", "impact": "Ordinary values follow the standard regression formula.", "recommended_future_action": "Document that p excludes the intercept and predictions should derive from the fitted model."}, {"type": "validation-gap", "evidence": "p accepts values producing zero or negative degrees of freedom, nonintegers, and negative counts.", "impact": "Calls can raise ZeroDivisionError or return NaN and can use nonsensical degrees of freedom.", "recommended_future_action": "Validate p as a nonnegative integer satisfying p < N-1 in a separately approved runtime change."}]
     },
     "KGE": {
       "status": "pending",

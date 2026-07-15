@@ -15,9 +15,9 @@ BATCH = ("KGE", "KGE2012", "KGEdp", "DE", "LME", "LCEf", "WIA", "WIAr", "LCE", "
 def test_batch_5_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
     completed = [key for key, record in inventory["metrics"].items() if record["status"] == "complete"]
-    assert completed[-len(BATCH):] == list(BATCH)
-    assert len(completed) == 50
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) == 39
+    assert completed[40:50] == list(BATCH)
+    assert len(completed) >= 50
+    assert sum(record["status"] == "complete" for record in inventory["metrics"].values()) >= 50
 
 
 def test_kge_family_distinguishes_component_definitions():

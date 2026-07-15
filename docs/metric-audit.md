@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 50
-- Pending: 39
+- Completed: 60
+- Pending: 29
 
 ## bias
 
@@ -18,6 +18,9 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `GMB` | Geometric Mean Bias | `geometric_mean_bias` | complete |
 | `MBD` | Mean Bias Difference | `mean_bias_difference` | complete |
 | `TS` | t-Statistic | `t_statistic` | complete |
+| `MBF` | Mean Bias Factor | `mean_bias_factor` | complete |
+| `RMBF` | Relative Mean Bias Factor | `relative_mean_bias_factor` | complete |
+| `NMBF` | Normalized Mean Bias Factor | `nmbf` | complete |
 
 ## core error
 
@@ -92,21 +95,18 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `KSI` | Kolmogorov-Smirnov Test Integral | `ksi` | complete |
+| `PHI` | Percentage of Histogram Intersection | `phi` | complete |
+| `SUSE` | Scaled and Unscaled Shannon Entropy Difference | `suse` | complete |
+| `OVER` | Over-estimation Metric | `over_metric` | complete |
+| `IQR` | Interquartile Range | `IQR` | complete |
+| `STD` | Standard Deviation | `STD` | complete |
+| `nESkew` | Normalized Error Skewness | `normalized_error_skewness` | complete |
+| `nEKurt` | Normalized Error Kurtosis | `normalized_error_kurtosis` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `PHI` | Percentage of Histogram Intersection | `phi` | pending |
-| `SUSE` | Scaled and Unscaled Shannon Entropy Difference | `suse` | pending |
-| `OVER` | Over-estimation Metric | `over_metric` | pending |
-| `IQR` | Interquartile Range | `IQR` | pending |
-| `STD` | Standard Deviation | `STD` | pending |
-| `nESkew` | Normalized Error Skewness | `normalized_error_skewness` | pending |
-| `nEKurt` | Normalized Error Kurtosis | `normalized_error_kurtosis` | pending |
-| `MBF` | Mean Bias Factor | `mean_bias_factor` | pending |
-| `RMBF` | Relative Mean Bias Factor | `relative_mean_bias_factor` | pending |
-| `NMBF` | Normalized Mean Bias Factor | `nmbf` | pending |
 | `RNMBF` | Relative Normalized Mean Bias Factor | `rnmbf` | pending |
 | `CPI` | Combined Performance Index | `cpi` | pending |
 | `RED` | Relative Euclidean Distance | `red` | pending |

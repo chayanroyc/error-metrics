@@ -12,7 +12,8 @@ ROOT = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = ROOT / "audit" / "metrics.yaml"
 REPORT_PATH = ROOT / "docs" / "metric-audit.md"
 
-COMPLETE_FIELDS = (
+PENDING_FIELDS = ("status", "name", "method")
+COMPLETE_FIELDS = PENDING_FIELDS + (
     "category",
     "output",
     "implemented_behavior",
@@ -64,6 +65,13 @@ REFERENCE_FIELDS = (
     "supports",
 )
 REFERENCE_TYPES = {"primary", "authoritative", "secondary"}
+PARAMETER_FIELDS = (
+    "name",
+    "default",
+    "accepted_types",
+    "validation",
+    "invalid_behavior",
+)
 FINDING_FIELDS = ("type", "evidence", "impact", "recommended_future_action")
 FINDING_TYPES = {
     "consistent",
@@ -82,11 +90,48 @@ def load_inventory(path: Path) -> Dict[str, Any]:
         return json.load(inventory_file)
 
 
+def _validate_exact_keys(
+    value: Mapping[str, Any], expected: tuple, path: str, errors: List[str]
+) -> None:
+    for field in expected:
+        if field not in value:
+            errors.append(f"{path}.{field}: missing field")
+    for field in value:
+        if field not in expected:
+            errors.append(f"{path}.{field}: unexpected field")
+
+
+def _validate_string(value: Any, path: str, errors: List[str]) -> None:
+    if not isinstance(value, str):
+        errors.append(f"{path}: expected string")
+
+
+def _validate_string_list(value: Any, path: str, errors: List[str]) -> None:
+    if not isinstance(value, list):
+        errors.append(f"{path}: expected list")
+        return
+    for index, item in enumerate(value):
+        _validate_string(item, f"{path}.{index}", errors)
+
+
+def _validate_object(
+    value: Any, expected: tuple, path: str, errors: List[str]
+) -> bool:
+    if not isinstance(value, dict):
+        errors.append(f"{path}: expected object")
+        return False
+    _validate_exact_keys(value, expected, path, errors)
+    return True
+
+
 def validate_inventory(
     inventory: Mapping[str, Any], registry: Mapping[str, Any]
 ) -> List[str]:
     """Return deterministic validation errors for *inventory*."""
     errors: List[str] = []
+    if not isinstance(inventory, dict):
+        return ["inventory: expected object"]
+    _validate_exact_keys(inventory, ("schema_version", "metrics"), "inventory", errors)
     if inventory.get("schema_version") != 1:
         errors.append("schema_version: expected 1")
 
@@ -112,6 +157,15 @@ def validate_inventory(
             continue
 
         info = registry[abbreviation]
+        for identity_field in PENDING_FIELDS:
+            if identity_field not in record:
+                errors.append(f"{path}.{identity_field}: missing field")
+        if "status" in record:
+            _validate_string(record["status"], f"{path}.status", errors)
+        if "name" in record:
+            _validate_string(record["name"], f"{path}.name", errors)
+        if "method" in record:
+            _validate_string(record["method"], f"{path}.method", errors)
         if record.get("name") != info.name:
             errors.append(f"{path}.name: does not match registry")
         if record.get("method") != info.function.__name__:
@@ -120,46 +174,106 @@ def validate_inventory(
         status = record.get("status")
         if status not in ("pending", "complete"):
             errors.append(f"{path}.status: expected 'pending' or 'complete'")
+        if status == "pending":
+            _validate_exact_keys(record, PENDING_FIELDS, path, errors)
         if status == "complete":
-            for field in COMPLETE_FIELDS:
-                if field not in record:
-                    errors.append(f"{path}.{field}: missing field")
-            if "category" in record and record["category"] not in CATEGORIES:
-                errors.append(f"{path}.category: unknown category")
+            _validate_exact_keys(record, COMPLETE_FIELDS, path, errors)
+            if "category" in record:
+                _validate_string(record["category"], f"{path}.category", errors)
+                if isinstance(record["category"], str) and record["category"] not in CATEGORIES:
+                    errors.append(f"{path}.category: unknown category")
             for field, nested_fields in NESTED_FIELDS.items():
-                value = record.get(field)
-                if not isinstance(value, dict):
-                    if field in record:
-                        errors.append(f"{path}.{field}: expected object")
+                if field not in record:
                     continue
+                value = record[field]
+                if not _validate_object(value, nested_fields, f"{path}.{field}", errors):
+                    continue
+
                 for nested_field in nested_fields:
                     if nested_field not in value:
-                        errors.append(
-                            f"{path}.{field}.{nested_field}: missing field"
+                        continue
+                    nested_path = f"{path}.{field}.{nested_field}"
+                    if field == "implemented_behavior" and nested_field in (
+                        "preprocessing", "dependencies"
+                    ):
+                        _validate_string_list(value[nested_field], nested_path, errors)
+                    elif field == "scientific_basis" and nested_field in (
+                        "references", "known_variants"
+                    ):
+                        if nested_field == "known_variants":
+                            _validate_string_list(value[nested_field], nested_path, errors)
+                    elif field == "verification" and nested_field in (
+                        "existing_tests", "characterization_tests"
+                    ):
+                        _validate_string_list(value[nested_field], nested_path, errors)
+                    else:
+                        _validate_string(value[nested_field], nested_path, errors)
+
+            parameters = record.get("parameters")
+            if "parameters" in record and not isinstance(parameters, list):
+                errors.append(f"{path}.parameters: expected list")
+            elif isinstance(parameters, list):
+                for index, parameter in enumerate(parameters):
+                    parameter_path = f"{path}.parameters.{index}"
+                    if not _validate_object(
+                        parameter, PARAMETER_FIELDS, parameter_path, errors
+                    ):
+                        continue
+                    for field in ("name", "validation", "invalid_behavior"):
+                        if field in parameter:
+                            _validate_string(
+                                parameter[field], f"{parameter_path}.{field}", errors
+                            )
+                    if "accepted_types" in parameter:
+                        _validate_string_list(
+                            parameter["accepted_types"],
+                            f"{parameter_path}.accepted_types",
+                            errors,
                         )
-            references = record.get("scientific_basis", {}).get("references", [])
-            if isinstance(references, list):
+                    if "default" in parameter and isinstance(
+                        parameter["default"], (dict, list)
+                    ):
+                        errors.append(f"{parameter_path}.default: expected scalar")
+
+            scientific_basis = record.get("scientific_basis")
+            if isinstance(scientific_basis, dict):
+                references = scientific_basis.get("references")
+            else:
+                references = None
+            if references is not None and not isinstance(references, list):
+                errors.append(f"{path}.scientific_basis.references: expected list")
+            elif isinstance(references, list):
                 for index, reference in enumerate(references):
                     reference_path = f"{path}.scientific_basis.references.{index}"
-                    if not isinstance(reference, dict):
-                        errors.append(f"{reference_path}: expected object")
+                    if not _validate_object(
+                        reference, REFERENCE_FIELDS, reference_path, errors
+                    ):
                         continue
                     for field in REFERENCE_FIELDS:
-                        if field not in reference:
-                            errors.append(f"{reference_path}.{field}: missing field")
-                    if reference.get("type") not in REFERENCE_TYPES:
+                        if field in reference and field != "year":
+                            _validate_string(
+                                reference[field], f"{reference_path}.{field}", errors
+                            )
+                    if "year" in reference and type(reference["year"]) is not int:
+                        errors.append(f"{reference_path}.year: expected integer")
+                    if isinstance(reference.get("type"), str) and reference["type"] not in REFERENCE_TYPES:
                         errors.append(f"{reference_path}.type: unknown source quality")
-            findings = record.get("findings", [])
-            if isinstance(findings, list):
+            findings = record.get("findings")
+            if "findings" in record and not isinstance(findings, list):
+                errors.append(f"{path}.findings: expected list")
+            elif isinstance(findings, list):
                 for index, finding in enumerate(findings):
                     finding_path = f"{path}.findings.{index}"
-                    if not isinstance(finding, dict):
-                        errors.append(f"{finding_path}: expected object")
+                    if not _validate_object(
+                        finding, FINDING_FIELDS, finding_path, errors
+                    ):
                         continue
                     for field in FINDING_FIELDS:
-                        if field not in finding:
-                            errors.append(f"{finding_path}.{field}: missing field")
-                    if finding.get("type") not in FINDING_TYPES:
+                        if field in finding:
+                            _validate_string(
+                                finding[field], f"{finding_path}.{field}", errors
+                            )
+                    if isinstance(finding.get("type"), str) and finding["type"] not in FINDING_TYPES:
                         errors.append(f"{finding_path}.type: unknown finding type")
 
     return errors

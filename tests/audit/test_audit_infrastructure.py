@@ -95,17 +95,19 @@ def test_inventory_matches_live_registry_order_and_identity():
     assert list(inventory["metrics"]) == list(registry)
     assert len(inventory["metrics"]) == 89
     assert [
-        (abbreviation, record["name"], record["method"], record["status"])
+        (abbreviation, record["name"], record["method"])
         for abbreviation, record in inventory["metrics"].items()
     ] == [
         (
             abbreviation,
             info.name,
             info.function.__name__,
-            "pending",
         )
         for abbreviation, info in registry.items()
     ]
+    assert {
+        record["status"] for record in inventory["metrics"].values()
+    } <= {"pending", "complete"}
 
 
 def test_valid_pending_inventory_has_no_validation_errors():

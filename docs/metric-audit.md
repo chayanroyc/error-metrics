@@ -5,23 +5,48 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 0
-- Pending: 89
+- Completed: 10
+- Pending: 79
+
+## bias
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `MB` | Mean Bias | `mean_bias` | complete |
+
+## core error
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `MAE` | Mean Absolute Error | `mean_absolute_error` | complete |
+| `MedAE` | Median Absolute Error | `median_absolute_error` | complete |
+| `RMSE` | Root Mean Squared Error | `root_mean_squared_error` | complete |
+
+## correlation and agreement
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `R` | Correlation Coefficient | `correlation_coefficient` | complete |
+| `SpearmanR` | Spearman Rank Correlation | `spearman_r` | complete |
+| `KendallTau` | Kendall Tau Correlation | `kendall_tau` | complete |
+| `LCCC` | Lin's Concordance Correlation | `lccc` | complete |
+
+## efficiency and environmental evaluation
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `EV` | Explained Variance | `ev` | complete |
+
+## normalized and relative error
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `NMSE` | Normalized Mean Square Error | `nmse` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `MB` | Mean Bias | `mean_bias` | pending |
-| `MAE` | Mean Absolute Error | `mean_absolute_error` | pending |
-| `MedAE` | Median Absolute Error | `median_absolute_error` | pending |
-| `RMSE` | Root Mean Squared Error | `root_mean_squared_error` | pending |
-| `R` | Correlation Coefficient | `correlation_coefficient` | pending |
-| `SpearmanR` | Spearman Rank Correlation | `spearman_r` | pending |
-| `KendallTau` | Kendall Tau Correlation | `kendall_tau` | pending |
-| `LCCC` | Lin's Concordance Correlation | `lccc` | pending |
-| `EV` | Explained Variance | `ev` | pending |
-| `NMSE` | Normalized Mean Square Error | `nmse` | pending |
 | `CRM` | Coefficient of Residual Mass | `coefficient_of_residual_mass` | pending |
 | `RE` | Relative Error | `relative_error` | pending |
 | `EC` | Efficiency Coefficient | `efficiency_coefficient` | pending |

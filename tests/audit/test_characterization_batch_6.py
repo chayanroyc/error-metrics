@@ -15,9 +15,10 @@ BATCH = ("PHI", "SUSE", "OVER", "IQR", "STD", "nESkew", "nEKurt", "MBF", "RMBF",
 def test_batch_6_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
     completed = [key for key, record in inventory["metrics"].items() if record["status"] == "complete"]
+    first_sixty = list(inventory["metrics"].items())[:60]
     assert completed[50:60] == list(BATCH)
-    assert len(completed) >= 60
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) <= 29
+    assert [key for key, _ in first_sixty] == completed[:60]
+    assert all(record["status"] == "complete" for _, record in first_sixty)
 
 
 def test_histogram_metrics_match_hand_calculation_and_validate_bins():

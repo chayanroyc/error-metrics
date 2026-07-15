@@ -108,6 +108,33 @@ def test_constant_and_zero_denominators_expose_metric_specific_behavior():
         assert ErrorMetrics([0, 0], [0, 0]).kullback_leibler_divergence() == pytest.approx(0)
 
 
+def test_reviewed_edge_behaviors_are_executable():
+    assert np.isnan(ErrorMetrics([1, 3], [-1, 1]).rnmbf())
+    assert ErrorMetrics([0, 0], [0, 0]).cpi() == pytest.approx(0)
+    assert ErrorMetrics([2, 2], [2, 2]).cpi() == pytest.approx(0)
+
+    signed_fom = ErrorMetrics([-3, -3], [-3, -2]).figure_of_merit()
+    assert signed_fom == pytest.approx(120)
+    assert not 0 <= signed_fom <= 100
+
+    total, bias, nonuniformity, lack_of_correlation = ErrorMetrics([2, 2, 2], [1, 2, 3]).msd_decomposition()
+    assert total == pytest.approx(2 / 3)
+    assert bias == pytest.approx(0)
+    assert np.isnan(nonuniformity)
+    assert np.isnan(lack_of_correlation)
+
+    separated = ErrorMetrics([1, 1], [0, 0]).anderson_darling_distance()
+    assert separated == pytest.approx(1e10)
+    assert np.isinf(ErrorMetrics([0, 1], [1, 1]).kullback_leibler_divergence())
+
+
+def test_reviewed_edge_characterizations_are_linked_from_inventory():
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())["metrics"]
+    edge_test = "tests/audit/test_characterization_batch_7.py::test_reviewed_edge_behaviors_are_executable"
+    for abbreviation in ("RNMBF", "CPI", "FoM", "MSDdec", "AD", "KLD"):
+        assert edge_test in inventory[abbreviation]["verification"]["characterization_tests"]
+
+
 def test_nonfinite_pairs_are_removed_and_empty_filtered_data_is_rejected():
     filtered = ErrorMetrics([1, np.nan, 3, 5, np.inf], [2, 9, 3, 4, 8])
     direct = ErrorMetrics([1, 3, 5], [2, 3, 4])

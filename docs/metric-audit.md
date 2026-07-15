@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 80
-- Pending: 9
+- Completed: 89
+- Pending: 0
 
 ## bias
 
@@ -34,6 +34,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `RMSD` | Root Mean Square Difference | `root_mean_square_difference` | complete |
 | `RSE` | Residual Standard Error | `residual_standard_error` | complete |
 | `CRPS` | Continuous Ranked Probability Score | `continuous_ranked_probability_score` | complete |
+| `CRMSE` | Centered Root Mean Square | `centered_root_mean_square` | complete |
+| `MSLE` | Mean Squared Logarithmic Error | `mean_squared_logarithmic_error` | complete |
 
 ## correlation and agreement
 
@@ -48,6 +50,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `BM` | Berry-Mielke Index | `berry_mielke_score` | complete |
 | `dCor` | Distance Correlation | `distance_correlation` | complete |
 | `lambda` | Duveiller Agreement Coefficient | `duveiller_agreement_coefficient` | complete |
+| `TSS` | Taylor Skill Score | `taylor_skill_score` | complete |
+| `Gini` | Gini Coefficient | `gini_coefficient` | complete |
 
 ## efficiency and environmental evaluation
 
@@ -93,6 +97,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `RED` | Relative Euclidean Distance | `red` | complete |
 | `U2` | Theil's Inequality Coefficient | `theils_u2` | complete |
 | `iqRMSE` | Inter-Quartile RMSE | `interquartile_rmse` | complete |
+| `NMAEp` | Normalized Mean Absolute p-Error | `nmaep` | complete |
+| `NAE` | Normalized Absolute Error | `normalized_absolute_error` | complete |
 
 ## percentage error
 
@@ -119,6 +125,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `FoM` | Figure of Merit | `figure_of_merit` | complete |
 | `AD` | Anderson-Darling Distance | `anderson_darling_distance` | complete |
 | `KLD` | Kullback-Leibler Divergence | `kullback_leibler_divergence` | complete |
+| `MEAN` | Mean Values | `meann` | complete |
+| `MEDIAN` | Median Values | `mediann` | complete |
 
 ## diagnostic and decomposition
 
@@ -132,17 +140,4 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `TAcc` | Trend Accuracy | `trend_accuracy` | complete |
-
-## Pending audit
-
-| Abbreviation | Name | Method | Status |
-| --- | --- | --- | --- |
-| `TSS` | Taylor Skill Score | `taylor_skill_score` | pending |
-| `MEAN` | Mean Values | `meann` | pending |
-| `MEDIAN` | Median Values | `mediann` | pending |
-| `CRMSE` | Centered Root Mean Square | `centered_root_mean_square` | pending |
-| `MSLE` | Mean Squared Logarithmic Error | `mean_squared_logarithmic_error` | pending |
-| `NMAEp` | Normalized Mean Absolute p-Error | `nmaep` | pending |
-| `NAE` | Normalized Absolute Error | `normalized_absolute_error` | pending |
-| `Gini` | Gini Coefficient | `gini_coefficient` | pending |
-| `PCD` | Prediction of Change in Direction | `prediction_of_change_in_direction` | pending |
+| `PCD` | Prediction of Change in Direction | `prediction_of_change_in_direction` | complete |

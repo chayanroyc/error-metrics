@@ -1042,49 +1042,121 @@
       "findings": [{"type": "test-gap", "evidence": "No pre-audit test directly exercised RNP or its four-component tuple.", "impact": "Component order, normalized FDC arithmetic, and degeneracies could regress unnoticed.", "recommended_future_action": "Retain the characterization tests and document tuple component order."}, {"type": "validation-gap", "evidence": "Zero-mean normalization yields NaNs that nansum can convert into alpha=1 while beta and the score remain NaN.", "impact": "The component tuple mixes a misleading perfect alpha with undefined components.", "recommended_future_action": "Document positive nonzero-mean domain and define validation separately."}]
     },
     "TSS": {
-      "status": "pending",
+      "status": "complete",
       "name": "Taylor Skill Score",
-      "method": "taylor_skill_score"
+      "method": "taylor_skill_score",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "nominally [0, 1], or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "4*(1+r)^4 / (((1/std_ratio)+std_ratio)^2*(1+1)^4), where std_ratio=population SD(prediction)/population SD(observation).", "preprocessing": ["Drop nonfinite pairs.", "Use Pearson correlation and population standard deviations."], "dependencies": ["correlation_coefficient", "NumPy std", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "A zero standard deviation makes the ratio or its reciprocal undefined and returns NaN.", "negative_inputs": "Accepted; common translation does not change the score.", "constant_series": "Returns NaN when either series is constant because the correlation and/or SD ratio is undefined.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Taylor's skill score combines pattern correlation and the ratio of modeled to observed standard deviations; the reference correlation is commonly set to one.", "references": [{"type": "primary", "title": "Summarizing multiple aspects of model performance in a single diagram", "authors_or_organization": "Karl E. Taylor", "year": 2001, "url_or_doi": "https://doi.org/10.1029/2000JD900719", "supports": "Introduces the skill score based on correlation and relative standard deviation alongside the Taylor diagram."}], "known_variants": ["The exponent on the correlation term and the reference correlation can be configured in generalized forms; runtime fixes exponent four and reference correlation one."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_advanced_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_taylor_skill_score_uses_correlation_and_population_standard_deviation_ratio"], "ordinary_case": "For predictions [2,4,6] and observations [1,2,3], r=1 and SD ratio=2, giving 4/(2.5^2)=0.64.", "edge_case": "Either constant series makes correlation or the standard-deviation ratio undefined and returns NaN."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime fixes the Taylor-score exponent and reference correlation without exposing those conventions.", "impact": "Values cannot be compared safely with generalized Taylor skill-score variants unless conventions are known.", "recommended_future_action": "Document exponent four, reference correlation one, and population-SD behavior."}]
     },
     "MEAN": {
-      "status": "pending",
+      "status": "complete",
       "name": "Mean Values",
-      "method": "meann"
+      "method": "meann",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "2-tuple (observation mean, prediction mean)", "implemented_range": "each component is any finite real value", "ideal_value": "equal components"},
+      "implemented_behavior": {"formula": "Return (mean(observation), mean(prediction)).", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["Cached Bottleneck nanmean values"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "All-zero data return (0,0).", "negative_inputs": "Accepted.", "constant_series": "Returns the two constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The arithmetic mean is the sum of observations divided by their count.", "references": [{"type": "authoritative", "title": "NIST/SEMATECH e-Handbook of Statistical Methods: Measures of Location", "authors_or_organization": "National Institute of Standards and Technology", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm", "supports": "Defines the sample mean as a measure of location and distinguishes it from the median."}], "known_variants": ["Weighted, geometric, and trimmed means are distinct summaries; runtime uses the unweighted arithmetic mean."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_summary_tuples_and_centered_error_match_hand_calculations"], "ordinary_case": "Predictions [2,4,9] and observations [1,5,6] return (4,5) in observation-first order.", "edge_case": "Constant observations 1 and predictions 2 return (1,2)."},
+      "findings": [{"type": "test-gap", "evidence": "No pre-audit test pinned the observation-first two-tuple order.", "impact": "Callers could silently transpose the two summaries.", "recommended_future_action": "Document and retain the tuple-order characterization."}]
     },
     "MEDIAN": {
-      "status": "pending",
+      "status": "complete",
       "name": "Median Values",
-      "method": "mediann"
+      "method": "mediann",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "2-tuple (observation median, prediction median)", "implemented_range": "each component is any finite real value", "ideal_value": "equal components"},
+      "implemented_behavior": {"formula": "Return (median(observation), median(prediction)).", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["Bottleneck nanmedian"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "All-zero data return (0,0).", "negative_inputs": "Accepted.", "constant_series": "Returns the two constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The median is the middle ordered value, averaging the two middle values for an even sample under the usual sample convention.", "references": [{"type": "authoritative", "title": "NIST/SEMATECH e-Handbook of Statistical Methods: Measures of Location", "authors_or_organization": "National Institute of Standards and Technology", "year": 2012, "url_or_doi": "https://www.itl.nist.gov/div898/handbook/eda/section3/eda351.htm", "supports": "Defines the median as a robust measure of location."}], "known_variants": ["Even-sample and weighted-median conventions can differ; Bottleneck uses the average of the middle order statistics."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_summary_tuples_and_centered_error_match_hand_calculations"], "ordinary_case": "Predictions [2,4,9] and observations [1,5,6] return (5,4) in observation-first order.", "edge_case": "Constant observations 1 and predictions 2 return (1,2)."},
+      "findings": [{"type": "test-gap", "evidence": "No pre-audit test pinned the observation-first two-tuple order.", "impact": "Callers could silently transpose the two summaries.", "recommended_future_action": "Document and retain the tuple-order characterization."}]
     },
     "CRMSE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Centered Root Mean Square",
-      "method": "centered_root_mean_square"
+      "method": "centered_root_mean_square",
+      "category": "core error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity)", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sqrt(mean(((prediction-mean(prediction))-(observation-mean(observation)))^2)).", "preprocessing": ["Drop nonfinite pairs.", "Center each series by its own arithmetic mean."], "dependencies": ["NumPy mean and sqrt"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "All-zero data return zero.", "negative_inputs": "Accepted; independent additive offsets are removed by centering.", "constant_series": "Any two constant series return zero even when their levels differ.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Centered RMS difference is the root mean square difference after removing each field's mean and measures centered-pattern disagreement.", "references": [{"type": "primary", "title": "Summarizing multiple aspects of model performance in a single diagram", "authors_or_organization": "Karl E. Taylor", "year": 2001, "url_or_doi": "https://doi.org/10.1029/2000JD900719", "supports": "Defines centered RMS difference and its relationship to correlation and standard deviations."}], "known_variants": ["Sample-weighted spatial fields and degrees-of-freedom corrections are possible; runtime uses an unweighted population mean square."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_summary_tuples_and_centered_error_match_hand_calculations"], "ordinary_case": "For predictions [2,4,9] and observations [1,5,6], centered differences are [0,-2,2], giving sqrt(8/3).", "edge_case": "Adding 10 to every prediction leaves CRMSE unchanged; unequal constants return zero."},
+      "findings": [{"type": "documentation-gap", "evidence": "The registered description does not explain that independent mean biases are removed.", "impact": "A zero score can occur for predictions with an arbitrarily large constant offset.", "recommended_future_action": "Document CRMSE as centered-pattern error and pair it with a bias summary."}]
     },
     "MSLE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Mean Squared Logarithmic Error",
-      "method": "mean_squared_logarithmic_error"
+      "method": "mean_squared_logarithmic_error",
+      "category": "core error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity), or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "nanmean((log1p(prediction)-log1p(observation))^2).", "preprocessing": ["Drop nonfinite pairs.", "Apply natural log after adding one.", "Omit NaN log-domain contributions through nanmean."], "dependencies": ["NumPy log1p", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Input nonfinite pairs are removed; log-domain NaNs created afterward are omitted, while infinities can create NaN differences.", "zero_inputs_or_denominators": "Zeros are valid because log1p(0)=0.", "negative_inputs": "Values below -1 produce RuntimeWarning and NaN contributions that nanmean omits; exactly -1 produces negative infinity and may yield infinite or NaN differences.", "constant_series": "Equal constants greater than -1 return zero; equal -1 constants warn and return NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "MSLE averages squared differences of log(1+prediction) and log(1+observation) and therefore requires both values to be nonnegative in standard regression APIs.", "references": [{"type": "authoritative", "title": "mean_squared_log_error", "authors_or_organization": "scikit-learn developers", "year": 2026, "url_or_doi": "https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_squared_log_error.html", "supports": "Documents the log(1+x) squared-error definition and rejects negative targets or predictions."}], "known_variants": ["Some log errors use log values without the +1 shift or explicitly validate nonnegative inputs; runtime uses log1p without validation."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_mean_squared_logarithmic_error"], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_msle_matches_log1p_hand_calculation_and_preserves_negative_domain_warnings"], "ordinary_case": "Predictions [1,3] versus observations [0,1] give the mean of two squared log(2) differences.", "edge_case": "For predictions [-2,0] versus [0,0], the invalid first contribution warns and is omitted, leaving a reported zero; equal -1 values warn and return NaN."},
+      "findings": [{"type": "possible-defect", "evidence": "Negative values are not rejected; domain-invalid contributions can be omitted by nanmean and make a partially invalid dataset appear perfect.", "impact": "MSLE can return a finite misleading value after runtime warnings.", "recommended_future_action": "Specify a nonnegative input contract and consider explicit validation only in a separately approved runtime change."}]
     },
     "NMAEp": {
-      "status": "pending",
+      "status": "complete",
       "name": "Normalized Mean Absolute p-Error",
-      "method": "nmaep"
+      "method": "nmaep",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity)", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "mean(|prediction-observation|^p)^(1/p) / |mean(observation)|.", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["Bottleneck nanmean", "NumPy abs and isfinite"]},
+      "parameters": [{"name": "p", "default": 1.0, "accepted_types": ["Finite real numeric values greater than zero, excluding bool and numpy.bool_"], "validation": "Reject bool, nonfinite, zero, and negative values with ValueError.", "invalid_behavior": "Raises ValueError with 'p must be finite and > 0'."}],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed; nonfinite p is rejected.", "zero_inputs_or_denominators": "A zero observation mean raises ValueError, including nonzero observations that cancel.", "negative_inputs": "Accepted; errors and the normalizing observation mean are made absolute.", "constant_series": "Defined when the observation constant is nonzero; zero observations raise ValueError.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "A mean absolute p-error is the power mean of absolute errors; normalization by an observed location or scale is an application-specific relative-error convention.", "references": [{"type": "authoritative", "title": "numpy.linalg.norm", "authors_or_organization": "NumPy developers", "year": 2026, "url_or_doi": "https://numpy.org/doc/stable/reference/generated/numpy.linalg.norm.html", "supports": "Documents vector p-norm conventions that motivate the p-root of powered absolute errors."}], "known_variants": ["Lp norms usually use a sum rather than a mean, and normalized errors use many denominators; runtime uses the power mean divided by absolute observation mean."]},
+      "verification": {"existing_tests": ["tests/test_v5_metrics.py::test_nmaep_matches_p1_p2_hand_calculations", "tests/test_v5_metrics.py::test_nmaep_validation", "tests/test_v5_metrics.py::test_nmaep_zero_mean_and_registry"], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_nmaep_parameter_and_zero_mean_validation"], "ordinary_case": "Predictions [2,4] versus observations [1,2] give p=1 score 1 and p=2 score sqrt(2.5)/1.5.", "edge_case": "Observations [-1,1] have zero mean and raise ValueError despite nonzero magnitudes."},
+      "findings": [{"type": "definition-variant", "evidence": "No located primary source establishes the exact name NMAEp with normalization by absolute observation mean.", "impact": "The metric can be mistaken for a standard Lp norm or for other normalized p-error denominators.", "recommended_future_action": "Document the exact power-mean numerator and mean-observation denominator without implying a universal convention."}]
     },
     "NAE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Normalized Absolute Error",
-      "method": "normalized_absolute_error"
+      "method": "normalized_absolute_error",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "unbounded signed real, infinity, or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "nanmean(|prediction-observation| / (0.5*(prediction+observation))).", "preprocessing": ["Drop nonfinite pairs.", "Form a signed pairwise arithmetic-mean denominator."], "dependencies": ["NumPy abs", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed; division can create infinities retained by nanmean and NaNs omitted by nanmean.", "zero_inputs_or_denominators": "Opposite-signed pairs with zero sum yield infinity; (0,0) yields NaN and is omitted; all-zero data return NaN.", "negative_inputs": "A negative pair sum creates a negative contribution despite the absolute numerator.", "constant_series": "Equal constants return zero unless both are zero, which returns NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Normalized absolute-error names cover multiple denominators; a symmetric relative difference commonly uses absolute magnitudes in the denominator to retain nonnegativity.", "references": [{"type": "primary", "title": "Another look at measures of forecast accuracy", "authors_or_organization": "Hyndman and Koehler", "year": 2006, "url_or_doi": "https://doi.org/10.1016/j.ijforecast.2006.03.001", "supports": "Reviews scale-free absolute and symmetric percentage errors and their denominator pathologies."}], "known_variants": ["Normalization may use mean observation, observation range, L1 observation total, or the sum of absolute prediction and observation; runtime uses each pair's signed half-sum."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_nae_uses_signed_pairwise_half_sum_denominators"], "ordinary_case": "Predictions [3,6] versus observations [1,2] yield two contributions equal to one and score one.", "edge_case": "All-negative proportional pairs return -1; opposite-signed zero-sum pairs return infinity; all-zero pairs return NaN."},
+      "findings": [{"type": "possible-defect", "evidence": "The denominator is the signed half-sum rather than a magnitude, so a named absolute error can be negative and can diverge at opposite-signed pairs.", "impact": "The documented nonnegative error interpretation and comparisons across signed data are unreliable.", "recommended_future_action": "Document the signed denominator immediately; evaluate an absolute-denominator alternative only as a separately approved compatibility change."}]
     },
     "Gini": {
-      "status": "pending",
+      "status": "complete",
       "name": "Gini Coefficient",
-      "method": "gini_coefficient"
+      "method": "gini_coefficient",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "data-dependent signed real, or NaN", "ideal_value": "maximum attainable value for the fixed observations"},
+      "implemented_behavior": {"formula": "Sort pairs by descending prediction; accumulate observation/total_observation minus 1/N at each rank; return the accumulated sum divided by N.", "preprocessing": ["Drop nonfinite pairs.", "Order by descending predictions with NumPy argsort."], "dependencies": ["NumPy argsort", "Bottleneck nansum"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "A zero observation total returns NaN.", "negative_inputs": "Negative predictions only determine ordering; an all-negative nonzero observation total can produce the same score as a sign-flipped positive outcome vector, while mixed signs can leave standard Lorenz interpretations.", "constant_series": "Constant predictions use argsort's tie order, so the score can depend on input order; constant nonzero observations return zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The concentration/Gini ranking statistic is twice the area between a cumulative outcome curve ordered by model score and the equality line; normalized Gini divides by the perfect-order statistic.", "references": [{"type": "primary", "title": "Economic Inequality and Income Distribution", "authors_or_organization": "Amartya Sen", "year": 1973, "url_or_doi": "https://archive.org/details/economicinequali0000sena", "supports": "Develops the Lorenz-curve and Gini-area interpretation for nonnegative distributions."}, {"type": "authoritative", "title": "Gini metric implementation", "authors_or_organization": "Ben Hamner Metrics repository", "year": 2012, "url_or_doi": "https://github.com/benhamner/Metrics/blob/master/Python/ml_metrics/average_precision.py", "supports": "Provides competition-oriented rank metric context; runtime itself cites Hamner's metrics implementation."}], "known_variants": ["Competition Gini is often normalized by the perfect ranking; runtime returns an unnormalized discrete area.", "Tie handling can average ranks or preserve input order; runtime relies on argsort ordering."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_gini_coefficient"], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_gini_depends_on_descending_prediction_order_and_observation_total"], "ordinary_case": "For outcomes [1,1,0,0,0], descending perfect ordering scores 0.3 and reversed ordering scores -0.3.", "edge_case": "A zero outcome total returns NaN; prediction ties can make result depend on original row order."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime returns an unnormalized discrete ranking Gini rather than a [0,1] normalized Gini coefficient.", "impact": "Perfect ranking depends on outcome prevalence (0.3 in the characterization), and reversed ranking is negative.", "recommended_future_action": "Document unnormalized signed scale, outcome-domain restrictions, and tie behavior; do not claim range [0,1]."}]
     },
     "PCD": {
-      "status": "pending",
+      "status": "complete",
       "name": "Prediction of Change in Direction",
-      "method": "prediction_of_change_in_direction"
+      "method": "prediction_of_change_in_direction",
+      "category": "trend and direction",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, 1], or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "sum(((prediction[t]-prediction[t-1])*(observation[t]-observation[t-1]))>0)/(N-1).", "preprocessing": ["Drop nonfinite pairs before taking adjacent differences; removed pairs compress time."], "dependencies": ["NumPy sum"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first, potentially making formerly nonadjacent values adjacent.", "zero_inputs_or_denominators": "A one-point series returns NaN by explicit guard.", "negative_inputs": "Accepted; only successive difference signs matter.", "constant_series": "Every flat transition scores false, including when both series are flat, so a length-at-least-two flat perfect series returns zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Directional accuracy counts cases where forecast and actual changes have the same sign; exact treatments of zero change vary.", "references": [{"type": "primary", "title": "Directional accuracy tests", "authors_or_organization": "Pesaran and Timmermann", "year": 1992, "url_or_doi": "https://doi.org/10.1080/07350015.1992.10509990", "supports": "Develops evaluation of whether predictions correctly identify the direction of change."}, {"type": "authoritative", "title": "Prediction of Change in Direction (PCD)", "authors_or_organization": "Permetrics developers", "year": 2026, "url_or_doi": "https://permetrics.readthedocs.io/en/latest/pages/regression/PCD.html", "supports": "Documents the successive-change product indicator used by the runtime implementation."}], "known_variants": ["Zero changes may count as agreement when both are flat, be excluded, or count as incorrect; runtime counts every zero-product transition as incorrect."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_prediction_of_change_in_direction"], "characterization_tests": ["tests/audit/test_characterization_batch_9.py::test_pcd_short_flat_and_strict_direction_behavior"], "ordinary_case": "Predictions [1,2,1,3] and observations [1,3,2,4] have three matching strict directions and score one.", "edge_case": "One point returns NaN; identical [1,1,2] series score 0.5 because their shared flat transition is counted incorrect; fully flat series score zero."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime requires a strictly positive product, so matching flat transitions do not count as correct, and preprocessing can compress time.", "impact": "Perfect series with plateaus score below one and missing-value removal changes which transitions are evaluated.", "recommended_future_action": "Document strict-direction and time-compression semantics."}]
     }
   }
 }

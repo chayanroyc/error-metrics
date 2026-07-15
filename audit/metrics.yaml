@@ -1,0 +1,450 @@
+{
+  "schema_version": 1,
+  "metrics": {
+    "MB": {
+      "status": "pending",
+      "name": "Mean Bias",
+      "method": "mean_bias"
+    },
+    "MAE": {
+      "status": "pending",
+      "name": "Mean Absolute Error",
+      "method": "mean_absolute_error"
+    },
+    "MedAE": {
+      "status": "pending",
+      "name": "Median Absolute Error",
+      "method": "median_absolute_error"
+    },
+    "RMSE": {
+      "status": "pending",
+      "name": "Root Mean Squared Error",
+      "method": "root_mean_squared_error"
+    },
+    "R": {
+      "status": "pending",
+      "name": "Correlation Coefficient",
+      "method": "correlation_coefficient"
+    },
+    "SpearmanR": {
+      "status": "pending",
+      "name": "Spearman Rank Correlation",
+      "method": "spearman_r"
+    },
+    "KendallTau": {
+      "status": "pending",
+      "name": "Kendall Tau Correlation",
+      "method": "kendall_tau"
+    },
+    "LCCC": {
+      "status": "pending",
+      "name": "Lin's Concordance Correlation",
+      "method": "lccc"
+    },
+    "EV": {
+      "status": "pending",
+      "name": "Explained Variance",
+      "method": "ev"
+    },
+    "NMSE": {
+      "status": "pending",
+      "name": "Normalized Mean Square Error",
+      "method": "nmse"
+    },
+    "CRM": {
+      "status": "pending",
+      "name": "Coefficient of Residual Mass",
+      "method": "coefficient_of_residual_mass"
+    },
+    "RE": {
+      "status": "pending",
+      "name": "Relative Error",
+      "method": "relative_error"
+    },
+    "EC": {
+      "status": "pending",
+      "name": "Efficiency Coefficient",
+      "method": "efficiency_coefficient"
+    },
+    "MASE": {
+      "status": "pending",
+      "name": "Mean Absolute Scaled Error",
+      "method": "mean_absolute_scaled_error"
+    },
+    "MAAPE": {
+      "status": "pending",
+      "name": "Mean Arctangent Absolute Percentage Error",
+      "method": "mean_arctangent_absolute_percentage_error"
+    },
+    "A10": {
+      "status": "pending",
+      "name": "A10 Index",
+      "method": "a10_index"
+    },
+    "CI": {
+      "status": "pending",
+      "name": "Confidence Index",
+      "method": "confidence_index"
+    },
+    "ME": {
+      "status": "pending",
+      "name": "Max Error",
+      "method": "max_error"
+    },
+    "R2": {
+      "status": "pending",
+      "name": "Coefficient of Determination",
+      "method": "coefficient_of_determination"
+    },
+    "MNB": {
+      "status": "pending",
+      "name": "Mean Normalized Bias",
+      "method": "mean_normalized_bias"
+    },
+    "MNAE": {
+      "status": "pending",
+      "name": "Mean Normalized Absolute Error",
+      "method": "mean_normalized_absolute_error"
+    },
+    "FB": {
+      "status": "pending",
+      "name": "Fractional Bias",
+      "method": "fb"
+    },
+    "FAE": {
+      "status": "pending",
+      "name": "Fractional Absolute Error",
+      "method": "fae"
+    },
+    "MFB": {
+      "status": "pending",
+      "name": "Mean Fractional Bias",
+      "method": "mean_fractional_bias"
+    },
+    "MFE": {
+      "status": "pending",
+      "name": "Mean Fractional Error",
+      "method": "mean_fractional_error"
+    },
+    "MAGE": {
+      "status": "pending",
+      "name": "Mean Absolute Gross Error",
+      "method": "mean_absolute_gross_error"
+    },
+    "GMB": {
+      "status": "pending",
+      "name": "Geometric Mean Bias",
+      "method": "geometric_mean_bias"
+    },
+    "FAC2": {
+      "status": "pending",
+      "name": "Factor of Observations 2",
+      "method": "factor_of_observations2"
+    },
+    "MBD": {
+      "status": "pending",
+      "name": "Mean Bias Difference",
+      "method": "mean_bias_difference"
+    },
+    "RMSD": {
+      "status": "pending",
+      "name": "Root Mean Square Difference",
+      "method": "root_mean_square_difference"
+    },
+    "MAD": {
+      "status": "pending",
+      "name": "Mean Absolute Difference",
+      "method": "mean_absolute_difference"
+    },
+    "SD": {
+      "status": "pending",
+      "name": "Standard Deviation of Residual",
+      "method": "standard_deviation_of_residual"
+    },
+    "SBF": {
+      "status": "pending",
+      "name": "Slope of Best-Fit Line",
+      "method": "slope_of_best_fit_line"
+    },
+    "U95": {
+      "status": "pending",
+      "name": "Uncertainty at 95%",
+      "method": "uncertainty_95"
+    },
+    "TS": {
+      "status": "pending",
+      "name": "t-Statistic",
+      "method": "t_statistic"
+    },
+    "NSE": {
+      "status": "pending",
+      "name": "Nash-Sutcliffe Efficiency",
+      "method": "nash_sutcliffe_efficiency"
+    },
+    "NNSE": {
+      "status": "pending",
+      "name": "Normalized NSE",
+      "method": "normalized_nse"
+    },
+    "RAE": {
+      "status": "pending",
+      "name": "Relative Absolute Error",
+      "method": "relative_absolute_error"
+    },
+    "VAF": {
+      "status": "pending",
+      "name": "Variance Accounted For",
+      "method": "variance_accounted_for"
+    },
+    "RSE": {
+      "status": "pending",
+      "name": "Residual Standard Error",
+      "method": "residual_standard_error"
+    },
+    "KGE": {
+      "status": "pending",
+      "name": "Kling-Gupta Efficiency",
+      "method": "kling_gupta_efficiency"
+    },
+    "KGE2012": {
+      "status": "pending",
+      "name": "Modified Kling-Gupta Efficiency",
+      "method": "modified_kling_gupta_efficiency"
+    },
+    "KGEdp": {
+      "status": "pending",
+      "name": "Kling-Gupta Efficiency Double Prime",
+      "method": "kling_gupta_efficiency_double_prime"
+    },
+    "DE": {
+      "status": "pending",
+      "name": "Diagnostic Efficiency",
+      "method": "diagnostic_efficiency"
+    },
+    "LME": {
+      "status": "pending",
+      "name": "Liu Model Efficiency",
+      "method": "liu_model_efficiency"
+    },
+    "LCEf": {
+      "status": "pending",
+      "name": "Least-squares Combined Efficiency",
+      "method": "least_squares_combined_efficiency"
+    },
+    "WIA": {
+      "status": "pending",
+      "name": "Willmott's Index of Agreement",
+      "method": "willmotts_index_of_agreement"
+    },
+    "WIAr": {
+      "status": "pending",
+      "name": "Refined Index of Agreement",
+      "method": "refined_index_of_agreement"
+    },
+    "LCE": {
+      "status": "pending",
+      "name": "Legates Coefficient of Efficiency",
+      "method": "legates_coefficient_of_efficiency"
+    },
+    "KSI": {
+      "status": "pending",
+      "name": "Kolmogorov-Smirnov Test Integral",
+      "method": "ksi"
+    },
+    "PHI": {
+      "status": "pending",
+      "name": "Percentage of Histogram Intersection",
+      "method": "phi"
+    },
+    "SUSE": {
+      "status": "pending",
+      "name": "Scaled and Unscaled Shannon Entropy Difference",
+      "method": "suse"
+    },
+    "OVER": {
+      "status": "pending",
+      "name": "Over-estimation Metric",
+      "method": "over_metric"
+    },
+    "IQR": {
+      "status": "pending",
+      "name": "Interquartile Range",
+      "method": "IQR"
+    },
+    "STD": {
+      "status": "pending",
+      "name": "Standard Deviation",
+      "method": "STD"
+    },
+    "nESkew": {
+      "status": "pending",
+      "name": "Normalized Error Skewness",
+      "method": "normalized_error_skewness"
+    },
+    "nEKurt": {
+      "status": "pending",
+      "name": "Normalized Error Kurtosis",
+      "method": "normalized_error_kurtosis"
+    },
+    "MBF": {
+      "status": "pending",
+      "name": "Mean Bias Factor",
+      "method": "mean_bias_factor"
+    },
+    "RMBF": {
+      "status": "pending",
+      "name": "Relative Mean Bias Factor",
+      "method": "relative_mean_bias_factor"
+    },
+    "NMBF": {
+      "status": "pending",
+      "name": "Normalized Mean Bias Factor",
+      "method": "nmbf"
+    },
+    "RNMBF": {
+      "status": "pending",
+      "name": "Relative Normalized Mean Bias Factor",
+      "method": "rnmbf"
+    },
+    "CPI": {
+      "status": "pending",
+      "name": "Combined Performance Index",
+      "method": "cpi"
+    },
+    "RED": {
+      "status": "pending",
+      "name": "Relative Euclidean Distance",
+      "method": "red"
+    },
+    "FoM": {
+      "status": "pending",
+      "name": "Figure of Merit",
+      "method": "figure_of_merit"
+    },
+    "MSDdec": {
+      "status": "pending",
+      "name": "MSD Decomposition",
+      "method": "msd_decomposition"
+    },
+    "SS": {
+      "status": "pending",
+      "name": "Skill Score vs Climatology",
+      "method": "skill_score_against_climatology"
+    },
+    "AD": {
+      "status": "pending",
+      "name": "Anderson-Darling Distance",
+      "method": "anderson_darling_distance"
+    },
+    "KLD": {
+      "status": "pending",
+      "name": "Kullback-Leibler Divergence",
+      "method": "kullback_leibler_divergence"
+    },
+    "MPE": {
+      "status": "pending",
+      "name": "Mean Percentage Error",
+      "method": "mean_percentage_error"
+    },
+    "MAPE": {
+      "status": "pending",
+      "name": "Mean Absolute Percentage Error",
+      "method": "mean_absolute_percentage_error"
+    },
+    "sMAPE": {
+      "status": "pending",
+      "name": "Symmetric Mean Absolute Percentage Error",
+      "method": "symmetric_mean_absolute_percentage_error"
+    },
+    "CRPS": {
+      "status": "pending",
+      "name": "Continuous Ranked Probability Score",
+      "method": "continuous_ranked_probability_score"
+    },
+    "TAcc": {
+      "status": "pending",
+      "name": "Trend Accuracy",
+      "method": "trend_accuracy"
+    },
+    "U2": {
+      "status": "pending",
+      "name": "Theil's Inequality Coefficient",
+      "method": "theils_u2"
+    },
+    "BM": {
+      "status": "pending",
+      "name": "Berry-Mielke Index",
+      "method": "berry_mielke_score"
+    },
+    "dCor": {
+      "status": "pending",
+      "name": "Distance Correlation",
+      "method": "distance_correlation"
+    },
+    "lambda": {
+      "status": "pending",
+      "name": "Duveiller Agreement Coefficient",
+      "method": "duveiller_agreement_coefficient"
+    },
+    "iqRMSE": {
+      "status": "pending",
+      "name": "Inter-Quartile RMSE",
+      "method": "interquartile_rmse"
+    },
+    "SMA": {
+      "status": "pending",
+      "name": "SMA Regression Metrics",
+      "method": "sma_metrics"
+    },
+    "RNP": {
+      "status": "pending",
+      "name": "Non-parametric KGE",
+      "method": "rnp"
+    },
+    "TSS": {
+      "status": "pending",
+      "name": "Taylor Skill Score",
+      "method": "taylor_skill_score"
+    },
+    "MEAN": {
+      "status": "pending",
+      "name": "Mean Values",
+      "method": "meann"
+    },
+    "MEDIAN": {
+      "status": "pending",
+      "name": "Median Values",
+      "method": "mediann"
+    },
+    "CRMSE": {
+      "status": "pending",
+      "name": "Centered Root Mean Square",
+      "method": "centered_root_mean_square"
+    },
+    "MSLE": {
+      "status": "pending",
+      "name": "Mean Squared Logarithmic Error",
+      "method": "mean_squared_logarithmic_error"
+    },
+    "NMAEp": {
+      "status": "pending",
+      "name": "Normalized Mean Absolute p-Error",
+      "method": "nmaep"
+    },
+    "NAE": {
+      "status": "pending",
+      "name": "Normalized Absolute Error",
+      "method": "normalized_absolute_error"
+    },
+    "Gini": {
+      "status": "pending",
+      "name": "Gini Coefficient",
+      "method": "gini_coefficient"
+    },
+    "PCD": {
+      "status": "pending",
+      "name": "Prediction of Change in Direction",
+      "method": "prediction_of_change_in_direction"
+    }
+  }
+}

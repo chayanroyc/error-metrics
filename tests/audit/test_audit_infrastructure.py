@@ -71,6 +71,17 @@ def validate_single(record):
     )
 
 
+def valid_reference(year):
+    return {
+        "type": "primary",
+        "title": "Source title",
+        "authors_or_organization": "Source author",
+        "year": year,
+        "url_or_doi": "https://example.com/source",
+        "supports": "The audited claim.",
+    }
+
+
 def test_inventory_exists_and_uses_schema_version_one():
     assert INVENTORY_PATH.is_file()
     inventory = load_audit_module().load_inventory(INVENTORY_PATH)
@@ -276,7 +287,36 @@ def test_validator_enforces_reference_finding_and_controlled_labels():
     errors = validate_single(record)
     assert "metrics.MB.category: unknown category" in errors
     assert "metrics.MB.scientific_basis.references.0.type: unknown source quality" in errors
-    assert "metrics.MB.scientific_basis.references.0.year: expected integer" in errors
+    assert (
+        "metrics.MB.scientific_basis.references.0.year: "
+        "expected integer or 'unknown'"
+    ) in errors
     assert "metrics.MB.scientific_basis.references.0.extra: unexpected field" in errors
     assert "metrics.MB.findings.0.type: unknown finding type" in errors
     assert "metrics.MB.findings.0.extra: unexpected field" in errors
+
+
+def test_valid_complete_record_has_no_validation_errors():
+    _, info = next(iter(MetricRegistry.get_all_metrics().items()))
+    record = valid_complete_record(info)
+    record["scientific_basis"]["references"] = [valid_reference(2000)]
+    assert validate_single(record) == []
+
+
+def test_reference_year_accepts_integer_or_exact_unknown():
+    _, info = next(iter(MetricRegistry.get_all_metrics().items()))
+    for year in (2000, "unknown"):
+        record = valid_complete_record(info)
+        record["scientific_basis"]["references"] = [valid_reference(year)]
+        assert validate_single(record) == []
+
+
+def test_reference_year_rejects_other_strings_null_and_bool():
+    _, info = next(iter(MetricRegistry.get_all_metrics().items()))
+    for year in ("2000", "Unknown", None, True):
+        record = valid_complete_record(info)
+        record["scientific_basis"]["references"] = [valid_reference(year)]
+        assert (
+            "metrics.MB.scientific_basis.references.0.year: "
+            "expected integer or 'unknown'"
+        ) in validate_single(record)

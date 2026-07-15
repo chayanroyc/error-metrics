@@ -254,8 +254,13 @@ def validate_inventory(
                             _validate_string(
                                 reference[field], f"{reference_path}.{field}", errors
                             )
-                    if "year" in reference and type(reference["year"]) is not int:
-                        errors.append(f"{reference_path}.year: expected integer")
+                    if "year" in reference:
+                        year = reference["year"]
+                        if type(year) is not int and year != "unknown":
+                            errors.append(
+                                f"{reference_path}.year: "
+                                "expected integer or 'unknown'"
+                            )
                     if isinstance(reference.get("type"), str) and reference["type"] not in REFERENCE_TYPES:
                         errors.append(f"{reference_path}.type: unknown source quality")
             findings = record.get("findings")

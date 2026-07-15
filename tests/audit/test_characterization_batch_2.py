@@ -28,7 +28,9 @@ def test_batch_2_metrics_match_hand_calculations_and_return_scalars():
         "relative_error": 0.75,
         "efficiency_coefficient": -2.0 / 7.0,
         "mean_absolute_scaled_error": 8.0 / 9.0,
-        "mean_arctangent_absolute_percentage_error": 50.0 * np.pi / 3.0 + (25.0 / 3.0) * np.arctan(0.25),
+        "mean_arctangent_absolute_percentage_error": (
+            np.pi / 4 + np.pi / 4 + np.arctan(0.25)
+        ) / 3,
         "a10_index": 0.0,
         "confidence_index": np.sqrt(3.0 / 28.0) * (28.0 / 55.0),
         "max_error": 2.0,
@@ -50,22 +52,32 @@ def test_perfect_varying_predictions_reach_implemented_ideals():
         assert getattr(metrics, method)() == pytest.approx(1.0)
 
 
-def test_zero_observations_are_omitted_or_counted_as_documented_by_runtime():
+def test_maape_uses_canonical_zero_actual_contributions():
     mixed = ErrorMetrics([5.0, 2.0], [0.0, 1.0])
     assert mixed.coefficient_of_residual_mass() == pytest.approx(6.0)
     assert mixed.relative_error() == pytest.approx(1.0)
-    assert mixed.mean_arctangent_absolute_percentage_error() == pytest.approx(25.0 * np.pi)
+    assert mixed.mean_arctangent_absolute_percentage_error() == pytest.approx(
+        (np.pi / 2 + np.pi / 4) / 2
+    )
     assert mixed.mean_normalized_bias() == pytest.approx(1.0)
     assert mixed.a10_index() == pytest.approx(0.0)
 
     zeros = ErrorMetrics([0.0, 0.0], [0.0, 0.0])
     with np.errstate(all="ignore"):
-        for method in ("coefficient_of_residual_mass", "relative_error", "mean_absolute_scaled_error", "mean_arctangent_absolute_percentage_error", "efficiency_coefficient", "coefficient_of_determination", "mean_normalized_bias"):
+        for method in ("coefficient_of_residual_mass", "relative_error", "mean_absolute_scaled_error", "efficiency_coefficient", "coefficient_of_determination", "mean_normalized_bias"):
             assert np.isnan(getattr(zeros, method)())
+    assert zeros.mean_arctangent_absolute_percentage_error() == pytest.approx(0.0)
     with pytest.warns(RuntimeWarning), pytest.raises(ZeroDivisionError):
         zeros.confidence_index()
     assert zeros.a10_index() == pytest.approx(0.0)
     assert zeros.max_error() == pytest.approx(0.0)
+
+
+def test_maape_is_bounded_for_large_errors():
+    metrics = ErrorMetrics([1_000_000.0], [1.0])
+    result = metrics.mean_arctangent_absolute_percentage_error()
+    assert 0.0 < result < np.pi / 2
+    assert result == pytest.approx(np.arctan(999_999.0))
 
 
 def test_constant_observations_make_scaled_and_efficiency_denominators_undefined():

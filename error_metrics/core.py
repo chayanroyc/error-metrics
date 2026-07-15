@@ -337,31 +337,29 @@ class ErrorMetrics:
 
     @MetricRegistry.register("Mean Arctangent Absolute Percentage Error", "MAAPE", "Mean Arctangent Absolute Percentage Error")
     def mean_arctangent_absolute_percentage_error(self) -> float:
+        """Return MAAPE in radians following Kim and Kim (2016).
+
+        MAAPE is the mean of ``atan(abs((prediction - observation) /
+        observation))`` and is bounded in ``[0, pi / 2]``. A zero observation
+        contributes ``pi / 2`` for a nonzero prediction and ``0`` for a
+        zero-zero pair.
         """
-        Calculate Mean Arctangent Absolute Percentage Error (MAAPE).
-        
-        MAAPE is an alternative to MAPE that avoids the issue of dividing by zero
-        when the actual value is zero. It uses the arctangent function to transform
-        percentage errors into a bounded range. Best possible score is 0.0,
-        smaller value is better. Range = [0, +inf)
-        
-        Formula: MAAPE = (100/n) ∑|(A_i - F_i)/A_i| * arctan(|(A_i - F_i)/A_i|)
-        where A_i is the i-th actual value and F_i is the i-th forecasted value
-        
-        Returns:
-            float: MAAPE value as a percentage
-        """
-        # Handle zero values in observations
-        safe_obs = np.where(self.observations == 0, np.nan, self.observations)
-        
-        # Calculate percentage errors
-        pct_errors = np.abs(self.diff / safe_obs)
-        
-        # Calculate arctangent of percentage errors
-        arctan_errors = np.arctan(pct_errors)
-        
-        # Calculate MAAPE
-        return 100 * bn.nanmean(pct_errors * arctan_errors)
+        absolute_error = np.abs(self.diff)
+        zero_observation = self.observations == 0
+        contributions = np.empty_like(absolute_error)
+
+        nonzero_observation = ~zero_observation
+        contributions[nonzero_observation] = np.arctan(
+            absolute_error[nonzero_observation]
+            / np.abs(self.observations[nonzero_observation])
+        )
+        contributions[zero_observation] = np.where(
+            absolute_error[zero_observation] == 0,
+            0.0,
+            np.pi / 2,
+        )
+
+        return float(bn.nanmean(contributions))
 
     @MetricRegistry.register("A10 Index", "A10", "A10 Index")
     def a10_index(self) -> float:

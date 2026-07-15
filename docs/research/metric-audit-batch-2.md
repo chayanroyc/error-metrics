@@ -126,8 +126,13 @@ policies are applied only after shared filtering.
   uniquely owns this abbreviation. Applied prediction papers commonly use an
   “a10-index” for the fraction satisfying
   \(0.9\le p_i/o_i\le1.1\), but that usage does not establish a universal
-  metric. The absence of a cited domain definition is material because ratios
-  require positive, nonzero observations.
+  metric. The canonical definition is therefore recorded as unknown, with
+  this ambiguity explained rather than inferred from an adjacent tolerance
+  API. NumPy's maintained `isclose` documentation provides useful
+  [tolerance and near-zero context](https://numpy.org/doc/stable/reference/generated/numpy.isclose.html),
+  but does not define or validate an A10 index. The absence of a cited domain
+  definition is material because ratios require positive, nonzero
+  observations.
 - **Implemented behavior.** The code tests
   \(|p_i-o_i|/|o_i|\le0.1\), which is equivalent to the ratio interval for
   positive observations. A zero observation is converted to NaN, but the
@@ -152,9 +157,11 @@ policies are applied only after shared filtering.
 - **Implemented behavior.** `CI` multiplies the repository's Pearson `R` by
   its original Willmott index, so it implements that particular `c` index.
   Constant inputs make `R` NaN; the Willmott denominator can also be zero.
-  Because \(d\) is ordinarily in `[0,1]` and \(r\) in `[-1,1]`, CI can be
-  negative, despite several published class tables only describing
-  nonnegative ranges.
+  For finite component results, \(d\) is in `[0,1]` and \(r\) in `[-1,1]`,
+  so the product is in `[-1,1]`. CI can also be NaN when correlation is
+  undefined, and the unguarded agreement denominator makes exact all-zero
+  inputs raise `ZeroDivisionError`. Negative finite results are possible,
+  despite several published class tables only describing nonnegative ranges.
 - **Audit implication.** The formula is consistent with the cited regional
   convention, but “confidence index” is an overloaded name and must not be
   presented as statistical confidence or uncertainty. Its behavior inherits

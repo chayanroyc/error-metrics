@@ -108,3 +108,15 @@ def test_nonfinite_pairs_are_removed_and_mase_warns_about_broken_spacing():
 def test_no_finite_pairs_are_rejected_before_batch_2_evaluation():
     with pytest.raises(ValueError, match="No valid data points after preprocessing"):
         ErrorMetrics([np.nan, np.inf], [1.0, 2.0])
+
+
+def test_a10_source_scope_and_ci_range_are_recorded_precisely():
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
+    a10 = inventory["metrics"]["A10"]
+    ci = inventory["metrics"]["CI"]
+
+    assert a10["scientific_basis"]["canonical_definition"].startswith("unknown:")
+    assert "does not define or validate a canonical A10 index" in a10["scientific_basis"]["references"][0]["supports"]
+    assert "[-1, 1]" in ci["output"]["implemented_range"]
+    assert "NaN" in ci["output"]["implemented_range"]
+    assert "ZeroDivisionError" in ci["output"]["implemented_range"]

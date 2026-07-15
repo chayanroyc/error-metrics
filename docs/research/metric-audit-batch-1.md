@@ -14,9 +14,10 @@ Implementation-derived: construction converts both inputs to floating-point
 arrays, requires equal shapes, flattens them, and removes every pair for which
 either member is NaN or infinite. It raises `ValueError` if no pair remains.
 Consequently, all ten metrics use complete-case pairs, including the SciPy
-calls whose own NaN policies would otherwise differ. Existing tests cover this
-shared filtering, all-invalid input, and the one-valid-pair case, but do not
-characterize every metric after filtering.
+calls whose own NaN policies would otherwise differ. Pre-batch tests covered
+the shared filtering, all-invalid input, and a one-valid-pair case only for
+selected metrics. The final Batch 1 characterization applies shared finite-pair
+and all-invalid checks across all ten methods.
 
 ## Findings by metric
 
@@ -34,9 +35,10 @@ characterize every metric after filtering.
   shift, and is zero for a perfect match. Negative and zero data require no
   special treatment.
 - **Audit implication.** Formula behavior is consistent once the sign
-  convention is documented. Current tests cover zeros, negative/mixed values,
-  finite filtering, scale dependence, and argument-order asymmetry; a direct
-  nonzero hand calculation would make the convention explicit.
+  convention is documented. Pre-batch tests covered zeros, negative/mixed
+  values, finite filtering, scale dependence, and argument-order asymmetry.
+  The final Batch 1 characterization adds a direct nonzero hand calculation,
+  the varying-data ideal, shared finite-pair filtering, and all-invalid input.
 
 ### MAE — mean absolute error
 
@@ -48,9 +50,11 @@ characterize every metric after filtering.
   unweighted scalar definition after shared filtering. It is symmetric in the
   two inputs, translation invariant, scales by \(|a|\) under common
   multiplication by \(a\), and is defined for one remaining pair.
-- **Audit implication.** Canonical formula and implementation agree. Tests
-  cover perfect/zero, negative, mixed, very large/small, filtered, and outlier
-  examples, but not a standalone ordinary hand-calculated MAE assertion.
+- **Audit implication.** Canonical formula and implementation agree. Pre-batch
+  tests covered perfect/zero, negative, mixed, very large/small, filtered, and
+  outlier examples. The final Batch 1 characterization adds a standalone
+  ordinary hand calculation, varying-data ideal, finite filtering, and
+  all-invalid input.
 
 ### MedAE — median absolute error
 
@@ -61,10 +65,11 @@ characterize every metric after filtering.
 - **Implemented behavior.** `median(abs(predictions - observations))` matches
   the unweighted scalar definition after filtering. For an even sample count,
   NumPy/Bottleneck median semantics average the two central ordered errors.
-- **Audit implication.** Formula behavior is consistent. Existing tests cover
-  perfect prediction, range, and reduced sensitivity to one large outlier;
-  they do not pin the even-sample median rule or behavior with one remaining
-  pair.
+- **Audit implication.** Formula behavior is consistent. Pre-batch tests
+  covered perfect prediction, range, and reduced sensitivity to one large
+  outlier. The final Batch 1 characterization adds an ordinary hand
+  calculation, varying-data ideal, finite filtering, and all-invalid input;
+  even-sample median semantics and a one-retained-pair case remain uncovered.
 
 ### RMSE — root mean squared error
 
@@ -79,10 +84,11 @@ characterize every metric after filtering.
   scalar definition after filtering. It is symmetric, translation invariant,
   and scales by \(|a|\). The mathematical inequality MAE \(\leq\) RMSE is
   asserted for one ordinary dataset.
-- **Audit implication.** Canonical formula and implementation agree. Existing
-  tests cover perfect/zero, sign-mixed, scale, magnitude, and consistency
-  properties, but lack a direct nonzero hand calculation and overflow
-  characterization for squaring near the floating-point limit.
+- **Audit implication.** Canonical formula and implementation agree. Pre-batch
+  tests covered perfect/zero, sign-mixed, scale, magnitude, and consistency
+  properties. The final Batch 1 characterization adds a direct nonzero hand
+  calculation, varying-data ideal, finite filtering, and all-invalid input;
+  overflow near the floating-point limit remains uncovered.
 
 ### R — Pearson product-moment correlation
 
@@ -99,10 +105,12 @@ characterize every metric after filtering.
   canonical sample product-moment calculation to NumPy. It explicitly returns
   NaN for fewer than two pairs; NumPy also yields NaN for a constant input
   because its variance term is zero. The cached value is reused by `LCCC`.
-- **Audit implication.** Formula/dependency choice is consistent. Tests cover
-  an ordinary value, perfect positive and negative relationships indirectly,
-  argument symmetry, scale invariance, one pair, and caching. Constant-series
-  and near-constant numerical behavior are not directly characterized for `R`.
+- **Audit implication.** Formula/dependency choice is consistent. Pre-batch
+  tests covered an ordinary value, perfect positive and negative relationships
+  indirectly, argument symmetry, scale invariance, one pair, and caching. The
+  final Batch 1 characterization adds a hand calculation, varying-data ideal,
+  equal-constant NaN behavior, finite filtering, and all-invalid input;
+  near-constant numerical-warning behavior remains uncovered.
 
 ### SpearmanR — Spearman rank correlation
 
@@ -121,9 +129,12 @@ characterize every metric after filtering.
   the default SciPy `nan_policy='propagate'` is not observable for original
   NaNs unless fewer than two finite pairs remain.
 - **Audit implication.** The delegation is authoritative and the intended
-  monotonic-association meaning is consistent. Tests cover an exact increasing
-  ranking, symmetry, and scale invariance, but not ties, decreasing ranks,
-  constant input/warnings, or one retained pair.
+  monotonic-association meaning is consistent. Pre-batch tests covered an
+  exact increasing ranking, symmetry, and scale invariance. The final Batch 1
+  characterization adds a nontrivial hand calculation, varying-data ideal,
+  equal-constant NaN plus warning behavior, finite filtering, and all-invalid
+  input; partially tied nonconstant ranks and one retained pair remain
+  uncovered.
 
 ### KendallTau — Kendall rank correlation
 
@@ -147,8 +158,12 @@ characterize every metric after filtering.
 - **Audit implication.** Runtime behavior is a defensible canonical tie-aware
   variant, but the method docstring's displayed formula is incomplete when
   ties exist: this is a documentation gap/definition-variant, not evidence of
-  a runtime defect. Tests cover ordinary, perfect increasing/decreasing, and a
-  partially discordant untied example; tie and constant cases are absent.
+  a runtime defect. Pre-batch tests covered ordinary, perfect
+  increasing/decreasing, and partially discordant untied examples. The final
+  Batch 1 characterization adds an untied hand calculation, varying-data
+  ideal, equal-constant NaN behavior, and the partially tied case
+  `[1,1,2]` versus `[1,2,3]`: \(P=2,Q=0,T=1,U=0\), so SciPy's documented
+  tau-b formula gives \(2/\sqrt{6}\), distinctly not the no-ties \(2/3\).
 
 ### LCCC — Lin's concordance correlation coefficient
 
@@ -168,33 +183,38 @@ characterize every metric after filtering.
   Pearson `r` is NaN; `_safe_divide` only handles an exactly zero final
   denominator and cannot turn a NaN numerator into a defined concordance.
 - **Audit implication.** The implemented algebra matches Lin's coefficient for
-  nondegenerate paired data. Existing tests cover an ordinary value, symmetry,
-  common scaling, caching, and all-zero NaN. They do not characterize equal
-  nonzero constants, one constant series, pure location shift, or pure scale
-  shift.
+  nondegenerate paired data. Pre-batch tests covered an ordinary value,
+  symmetry, common scaling, caching, and all-zero NaN. The final Batch 1
+  characterization adds a hand calculation, varying-data ideal, equal nonzero
+  constant NaN behavior, finite filtering, and all-invalid input; one-constant,
+  pure-location-shift, and pure-scale-shift cases remain uncovered.
 
 ### EV — explained variance
 
 - **Canonical definition.** The regression explained-variance score is
   \(1-\operatorname{Var}(o-p)/\operatorname{Var}(o)\), with best value 1.
-  It does not penalize a systematic constant offset. For a constant target,
-  the raw formula is NaN for perfect predictions and negative infinity for
-  imperfect nonconstant residuals; scikit-learn optionally maps these to
+  It does not penalize a systematic constant offset when the target variance
+  is nonzero. For a constant target, perfect predictions and constant-offset
+  predictions both have zero residual variance and therefore raw \(0/0\)
+  (NaN); only varying imperfect predictions have positive residual variance
+  and therefore raw negative infinity. Scikit-learn optionally maps these to
   finite convenience values
   ([scikit-learn maintainers, *Metrics and scoring: Explained variance
   score*, current documentation](https://scikit-learn.org/stable/modules/model_evaluation.html#explained-variance-score)).
 - **Implemented behavior.** `1 - var(predictions - observations) /
   var(observations)` matches the raw unweighted scalar formula, with population
   variance in numerator and denominator (the common divisor cancels). However,
-  `_safe_divide` returns NaN whenever the observation variance is exactly zero,
-  so this package returns NaN for both perfect and imperfect constant-target
-  cases rather than preserving raw negative infinity or adopting
-  scikit-learn's finite mapping.
-- **Audit implication.** Ordinary-data formula is consistent, while constant-
-  target policy is an implementation-specific variant that needs explicit
-  documentation. Current tests only assert NaN for an all-zero perfect case;
-  they omit an ordinary hand calculation, a constant offset (which should
-  score 1), and imperfect constant-target data.
+  `_safe_divide` returns NaN whenever the observation variance is exactly zero.
+  Thus it preserves NaN for the raw \(0/0\) perfect and constant-offset cases,
+  but maps the raw negative-infinity varying-prediction cases to NaN rather
+  than preserving them or adopting scikit-learn's finite mapping.
+- **Audit implication.** Ordinary-data formula is consistent, while the
+  constant-target policy is an implementation-specific variant that needs
+  explicit documentation. Pre-batch tests asserted NaN only for an all-zero
+  perfect case. The final Batch 1 characterization adds an ordinary hand
+  calculation, varying-data ideal, equal nonzero constant NaN behavior,
+  finite filtering, and all-invalid input; varying imperfect predictions
+  against a constant target remain uncovered.
 
 ### NMSE — normalized mean square error
 
@@ -218,10 +238,12 @@ characterize every metric after filtering.
   holds under a positive-product domain; no such domain validation exists.
 - **Audit implication.** The implementation matches the air-quality NMSE
   variant but the name alone is ambiguous and its unrestricted negative/zero-
-  mean behavior is a validation/documentation gap. Existing tests cover only
-  the all-zero denominator case. Add an ordinary positive hand calculation,
-  scale invariance, one-zero-mean, opposite-sign-mean, and cancellation-to-zero
-  cases before making any standardization recommendation.
+  mean behavior is a validation/documentation gap. Pre-batch tests covered
+  only the all-zero denominator case. The final Batch 1 characterization adds
+  an ordinary positive hand calculation, varying-data ideal, an observation-
+  mean-zero case with nonzero error, finite filtering, and all-invalid input;
+  scale invariance, opposite-sign means, and a nontrivial exact zero-mean
+  agreement case remain uncovered.
 
 ## Batch-level conclusions
 

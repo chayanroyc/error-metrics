@@ -84,6 +84,23 @@ def test_constant_series_characterizes_undefined_association_and_agreement():
     assert metrics.nmse() == pytest.approx(0.0)
 
 
+def test_kendall_tau_uses_tie_adjusted_tau_b():
+    metrics = ErrorMetrics([1.0, 1.0, 2.0], [1.0, 2.0, 3.0])
+
+    # P=2, Q=0, T=1, U=0: tau-b = (P-Q)/sqrt((P+Q+T)(P+Q+U)).
+    assert metrics.kendall_tau() == pytest.approx(2.0 / np.sqrt(6.0))
+    assert metrics.kendall_tau() != pytest.approx(2.0 / 3.0)
+
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
+    assert (
+        "tests/audit/test_characterization_batch_1.py::"
+        "test_kendall_tau_uses_tie_adjusted_tau_b"
+        in inventory["metrics"]["KendallTau"]["verification"][
+            "characterization_tests"
+        ]
+    )
+
+
 def test_nmse_zero_mean_denominator_returns_nan():
     metrics = ErrorMetrics([1.0, 3.0], [-1.0, 1.0])
 

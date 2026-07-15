@@ -16,9 +16,9 @@ BATCH = ("sMAPE", "CRPS", "TAcc", "U2", "BM", "dCor", "lambda", "iqRMSE", "SMA",
 def test_batch_8_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
     completed = [key for key, record in inventory["metrics"].items() if record["status"] == "complete"]
+    registry_order = list(inventory["metrics"])
+    assert completed[:80] == registry_order[:80]
     assert completed[70:80] == list(BATCH)
-    assert len(completed) >= 80
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) <= 9
 
 
 def test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations():

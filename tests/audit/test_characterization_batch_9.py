@@ -29,6 +29,9 @@ def test_summary_tuples_and_centered_error_match_hand_calculations():
     # Adding a common offset to predictions changes bias but not centered error.
     shifted = ErrorMetrics([12, 14, 19], [1, 5, 6])
     assert shifted.centered_root_mean_square() == pytest.approx(np.sqrt(8 / 3))
+    constants = ErrorMetrics([2, 2, 2], [1, 1, 1])
+    assert constants.meann() == pytest.approx((1, 2))
+    assert constants.mediann() == pytest.approx((1, 2))
 
 
 def test_taylor_skill_score_uses_correlation_and_population_standard_deviation_ratio():
@@ -38,6 +41,9 @@ def test_taylor_skill_score_uses_correlation_and_population_standard_deviation_r
     expected = 4 * (1 + r) ** 4 / ((1 / ratio + ratio) ** 2 * 16)
     assert metrics.taylor_skill_score() == pytest.approx(expected)
     assert ErrorMetrics([2, 4, 6], [1, 2, 3]).taylor_skill_score() == pytest.approx(0.64)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", RuntimeWarning)
+        assert np.isnan(ErrorMetrics([2, 2, 2], [1, 1, 1]).taylor_skill_score())
 
 
 def test_msle_matches_log1p_hand_calculation_and_preserves_negative_domain_warnings():
@@ -56,11 +62,13 @@ def test_nmaep_parameter_and_zero_mean_validation():
     metrics = ErrorMetrics([2, 4], [1, 2])
     assert metrics.nmaep() == pytest.approx(1)
     assert metrics.nmaep(2) == pytest.approx(np.sqrt(2.5) / 1.5)
+    assert metrics.nmaep(0.5) == pytest.approx(((1 + np.sqrt(2)) / 2) ** 2 / 1.5)
     for invalid in (True, 0, -1, np.inf, np.nan):
         with pytest.raises(ValueError, match="finite and > 0"):
             metrics.nmaep(invalid)
     with pytest.raises(ValueError, match="observation mean is zero"):
         ErrorMetrics([1, 2], [-1, 1]).nmaep()
+    assert ErrorMetrics([1, 2], [-1, 1 + 1e-12]).nmaep() > 1e12
 
 
 def test_nae_uses_signed_pairwise_half_sum_denominators():
@@ -79,6 +87,8 @@ def test_gini_depends_on_descending_prediction_order_and_observation_total():
     assert ErrorMetrics([1, 2, 3, 4, 5], observations).gini_coefficient() == pytest.approx(-0.3)
     assert ErrorMetrics([5, 4, 3, 2, 1], [-1, -1, 0, 0, 0]).gini_coefficient() == pytest.approx(0.3)
     assert np.isnan(ErrorMetrics([3, 2, 1], [0, 0, 0]).gini_coefficient())
+    assert ErrorMetrics([1, 1, 0], [1, 0, 0]).gini_coefficient() == pytest.approx(1 / 3)
+    assert ErrorMetrics([1, 1, 0], [0, 1, 0]).gini_coefficient() == pytest.approx(0)
 
 
 def test_pcd_short_flat_and_strict_direction_behavior():
@@ -86,6 +96,30 @@ def test_pcd_short_flat_and_strict_direction_behavior():
     assert np.isnan(ErrorMetrics([1], [1]).prediction_of_change_in_direction())
     assert ErrorMetrics([1, 1, 2], [1, 1, 2]).prediction_of_change_in_direction() == pytest.approx(0.5)
     assert ErrorMetrics([1, 1, 1], [2, 2, 2]).prediction_of_change_in_direction() == pytest.approx(0)
+
+
+def test_pcd_pair_filtering_compresses_adjacency_and_retains_order_dependence():
+    with_gap = ErrorMetrics([0, np.nan, 2], [0, 10, 1])
+    assert with_gap.prediction_of_change_in_direction() == pytest.approx(1)
+    ordered = ErrorMetrics([0, 1, 2], [0, 2, 1])
+    permuted = ErrorMetrics([2, 0, 1], [1, 0, 2])
+    assert ordered.prediction_of_change_in_direction() == pytest.approx(0.5)
+    assert permuted.prediction_of_change_in_direction() == pytest.approx(1)
+
+
+def test_reviewed_edge_characterizations_are_linked_from_inventory():
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())["metrics"]
+    expected_links = {
+        "TSS": "test_taylor_skill_score_uses_correlation_and_population_standard_deviation_ratio",
+        "MEAN": "test_summary_tuples_and_centered_error_match_hand_calculations",
+        "MEDIAN": "test_summary_tuples_and_centered_error_match_hand_calculations",
+        "NMAEp": "test_nmaep_parameter_and_zero_mean_validation",
+        "Gini": "test_gini_depends_on_descending_prediction_order_and_observation_total",
+        "PCD": "test_pcd_pair_filtering_compresses_adjacency_and_retains_order_dependence",
+    }
+    for abbreviation, test_name in expected_links.items():
+        links = inventory[abbreviation]["verification"]["characterization_tests"]
+        assert any(link.endswith(test_name) for link in links)
 
 
 def test_nonfinite_pairs_are_removed_and_empty_filtered_data_is_rejected():

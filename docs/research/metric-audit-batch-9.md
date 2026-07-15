@@ -106,7 +106,9 @@ remaining paired finite samples; removal also compresses a time series before
   positive `p`. The formula and validation should therefore be documented as
   a local generalized normalized-error contract, not silently attributed to a
   standard named index. A mean merely close to zero is accepted and can make
-  the result arbitrarily large.
+  the result arbitrarily large. The executable characterization covers a valid
+  quasi-norm exponent `p=0.5`, exact-zero rejection, and an accepted nonzero
+  mean close enough to zero to produce a score above `1e12`.
 
 ### `NAE` — Normalized Absolute Error
 
@@ -166,7 +168,9 @@ remaining paired finite samples; removal also compresses a time series before
   Because preprocessing removes invalid pairs first, a missing interior time
   point creates a new artificial adjacent interval between its former
   neighbors; PCD is therefore computed on compressed rather than original
-  time spacing.
+  time spacing. The executable characterization contrasts original and jointly
+  permuted orderings and separately pins the new adjacency created by removing
+  an invalid interior pair.
 
 ## Audit implications to preserve in characterization
 

@@ -19,7 +19,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | distribution and statistical comparison | 13 | 17 |
 | efficiency and environmental evaluation | 18 | 24 |
 | normalized and relative error | 19 | 30 |
-| percentage error | 5 | 7 |
+| percentage error | 5 | 6 |
 | trend and direction | 2 | 3 |
 
 ### Findings by type
@@ -28,13 +28,13 @@ Priority is synthesis triage, not a change to the reviewed finding.
 
 | Finding type | Count | Review priority |
 | --- | ---: | --- |
-| `possible-defect` | 17 | High |
-| `definition-variant` | 26 | Medium |
+| `possible-defect` | 16 | High |
+| `definition-variant` | 25 | Medium |
 | `validation-gap` | 20 | Medium |
 | `duplicate-or-overlap` | 8 | Low |
 | `test-gap` | 3 | Low |
 | `documentation-gap` | 27 | Low |
-| `consistent` | 19 | Low |
+| `consistent` | 20 | Low |
 
 ## bias
 
@@ -1010,12 +1010,12 @@ No public parameters.
 - Registered method: `mean_arctangent_absolute_percentage_error`
 - Category: percentage error
 - Return shape: scalar
-- Implemented range: [0, infinity), or NaN
+- Implemented range: [0, pi/2] radians
 - Ideal value: 0
 
 #### Implemented behavior
 
-- Formula: 100 * mean(q * arctan(q)), q=abs(error/observation), omitting zeros
+- Formula: mean(arctan(abs(error/observation)))
 - Preprocessing:
   - Convert to equal-shaped float arrays.
   - Flatten and drop nonfinite pairs.
@@ -1031,7 +1031,7 @@ No public parameters.
 #### Edge cases
 
 - NaN and infinity: Nonfinite pairs are removed.
-- Zero inputs or denominators: Zero-observation pairs are omitted; all-zero observations return NaN.
+- Zero inputs or denominators: A zero observation with nonzero error contributes pi/2; a zero-zero pair contributes 0.
 - Negative inputs: Accepted.
 - Constant series: Defined for nonzero constants.
 - No data after preprocessing: Construction raises ValueError.
@@ -1042,28 +1042,25 @@ No public parameters.
 - References:
   - [A new metric of absolute percentage error for intermittent demand forecasts](https://doi.org/10.1016/j.ijforecast.2015.12.003) — Kim and Kim (2016), primary. Supports: Defines bounded MAAPE and zero-actual limits.
 - Known variants:
-  - Runtime multiplies by q and 100.
+  - None
 
 #### Characterization and tests
 
-- Ordinary case: Ratios [1,1,1/4] give 100/3*(pi/2+atan(1/4)/4).
-- Edge case: Zero actuals are omitted rather than assigned a limiting angle.
+- Ordinary case: (pi/4 + pi/4 + atan(1/4)) / 3
+- Edge case: A zero observation with nonzero error contributes pi/2; a zero-zero pair contributes 0.
 - Existing tests:
   - None
 - Characterization tests:
   - tests/audit/test_characterization_batch_2.py::test_batch_2_metrics_match_hand_calculations_and_return_scalars
-  - tests/audit/test_characterization_batch_2.py::test_zero_observations_are_omitted_or_counted_as_documented_by_runtime
+  - tests/audit/test_characterization_batch_2.py::test_maape_uses_canonical_zero_actual_contributions
+  - tests/audit/test_characterization_batch_2.py::test_maape_is_bounded_for_large_errors
 
 #### Findings and recommended future action
 
-- `possible-defect`
-  - Evidence: Runtime computes 100*mean(q*atan(q)), not mean(atan(q)).
-  - Impact: It is unbounded and loses published robustness.
-  - Recommended future action: Correct only in a reviewed behavior change.
-- `definition-variant`
-  - Evidence: Zero actuals are omitted rather than handled by the published limit.
-  - Impact: Zeros change sample weighting.
-  - Recommended future action: Document and decide a zero policy.
+- `consistent`
+  - Evidence: Runtime follows the MAAPE definition and zero-actual limits in Kim and Kim (2016).
+  - Impact: The implementation is bounded and uses the published zero policy.
+  - Recommended future action: Maintain the Kim and Kim (2016) behavior in future changes.
 
 <a id="metric-a10"></a>
 ### `A10` — A10 Index

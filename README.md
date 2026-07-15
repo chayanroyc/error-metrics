@@ -45,6 +45,15 @@ To force an upgrade and reinstall from GitHub:
 python -m pip install --upgrade --force-reinstall "git+https://github.com/chayanroyc/error-metrics.git"
 ```
 
+## Breaking metric changes
+
+### MAAPE (current development version)
+
+MAAPE now follows the Kim and Kim (2016) formula
+`mean(arctan(abs(error/observation)))` and returns radians. A zero observation
+with nonzero error contributes `pi/2`; a zero-zero pair contributes `0`.
+Earlier versions returned an unbounded, percentage-like nonstandard expression.
+
 ## Quick start
 
 Compute a small set of metrics by their registered abbreviations:
@@ -220,7 +229,7 @@ supported; otherwise they are marked context-dependent.
 | `RE` | Relative Error | `relative_error` | Relative Error | [0, ∞) | `0` |
 | `EC` | Efficiency Coefficient | `efficiency_coefficient` | Efficiency Coefficient | (-∞, 1] | `1` |
 | `MASE` | Mean Absolute Scaled Error | `mean_absolute_scaled_error` | Mean Absolute Scaled Error | [0, ∞) | `0` |
-| `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | Mean Arctangent Absolute Percentage Error | [0, ∞) | `0` |
+| `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | Bounded angular percentage error (radians) | [0, π/2] | `0` |
 | `A10` | A10 Index | `a10_index` | A10 Index | [0, 1] | `1` |
 | `CI` | Confidence Index | `confidence_index` | Confidence Index | [-1, 1] | `1` |
 | `ME` | Max Error | `max_error` | Max Error | [0, ∞) | `0` |

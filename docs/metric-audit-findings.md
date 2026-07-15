@@ -8,16 +8,15 @@ Priority is a synthesis triage: High covers possible defects, Medium covers defi
 
 | Priority | Findings |
 | --- | ---: |
-| High | 17 |
-| Medium | 46 |
-| Low | 57 |
+| High | 16 |
+| Medium | 45 |
+| Low | 58 |
 
 ## Evidence-backed possible defects
 
 | Metric record | Evidence | Impact | Reviewed future action |
 | --- | --- | --- | --- |
 | [ `MASE` ](metric-audit.md#metric-mase) | The public m parameter is ignored and unvalidated. | Seasonal requests silently use lag 1. | Validate and implement m separately. |
-| [ `MAAPE` ](metric-audit.md#metric-maape) | Runtime computes 100*mean(q*atan(q)), not mean(atan(q)). | It is unbounded and loses published robustness. | Correct only in a reviewed behavior change. |
 | [ `CI` ](metric-audit.md#metric-ci) | Delegated WIA divides by zero for all-zero agreement. | CI raises instead of returning a score. | Address WIA separately. |
 | [ `FB` ](metric-audit.md#metric-fb) | Runtime uses a prediction-minus-observation pointwise mean, while cited FB is an observation-minus-prediction ratio of means. | Both aggregation and sign differ from canonical FB. | Confirm intended convention before changing runtime behavior. |
 | [ `MAGE` ](metric-audit.md#metric-mage) | Runtime divides each absolute residual by observation, while authoritative MAGE is unnormalized. | The method implements a fractional normalized metric rather than dimensional MAGE. | Confirm the intended registry name and formula before changing behavior. |
@@ -43,7 +42,6 @@ Priority is a synthesis triage: High covers possible defects, Medium covers defi
 | [ `NMSE` ](metric-audit.md#metric-nmse) | The generic name NMSE does not identify the implemented air-quality product-of-means normalization among several established normalizations. | Users can compare incompatible quantities under the same abbreviation. | Document the exact denominator and application domain. |
 | [ `CRM` ](metric-audit.md#metric-crm) | The numerator sign is opposite Loague and Green. | Bias direction is reversed. | Document the sign or change it only in a versioned fix. |
 | [ `MASE` ](metric-audit.md#metric-mase) | Scaling uses evaluation observations rather than a training series. | Results can differ from forecast MASE. | Document the available-data variant. |
-| [ `MAAPE` ](metric-audit.md#metric-maape) | Zero actuals are omitted rather than handled by the published limit. | Zeros change sample weighting. | Document and decide a zero policy. |
 | [ `MNB` ](metric-audit.md#metric-mnb) | Runtime returns a fraction rather than percent units. | Values differ by factor 100 from percent reports. | Document units. |
 | [ `MFB` ](metric-audit.md#metric-mfb) | A (0,0) pair contributes zero and remains in N, unlike legacy FB which omits it. | MFB and FB differ when zero pairs occur despite sharing the ordinary-data formula. | Document zero-pair weighting and naming distinction. |
 | [ `MFE` ](metric-audit.md#metric-mfe) | A (0,0) pair counts as zero, whereas FAE omits it. | MFE and FAE differ only for zero pairs or negative-domain validation. | Document the distinction. |

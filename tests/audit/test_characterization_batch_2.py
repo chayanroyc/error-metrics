@@ -13,12 +13,12 @@ BATCH = ("CRM", "RE", "EC", "MASE", "MAAPE", "A10", "CI", "ME", "R2", "MNB")
 
 def test_batch_2_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
-    assert [
+    completed = [
         abbreviation
         for abbreviation, record in inventory["metrics"].items()
         if record["status"] == "complete"
-    ] == ["MB", "MAE", "MedAE", "RMSE", "R", "SpearmanR", "KendallTau", "LCCC", "EV", "NMSE", *BATCH]
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) == 69
+    ]
+    assert completed[:20] == ["MB", "MAE", "MedAE", "RMSE", "R", "SpearmanR", "KendallTau", "LCCC", "EV", "NMSE", *BATCH]
 
 
 def test_batch_2_metrics_match_hand_calculations_and_return_scalars():

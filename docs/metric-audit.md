@@ -5,14 +5,18 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 20
-- Pending: 69
+- Completed: 30
+- Pending: 59
 
 ## bias
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `MB` | Mean Bias | `mean_bias` | complete |
+| `FB` | Fractional Bias | `fb` | complete |
+| `MFB` | Mean Fractional Bias | `mean_fractional_bias` | complete |
+| `GMB` | Geometric Mean Bias | `geometric_mean_bias` | complete |
+| `MBD` | Mean Bias Difference | `mean_bias_difference` | complete |
 
 ## core error
 
@@ -22,6 +26,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MedAE` | Median Absolute Error | `median_absolute_error` | complete |
 | `RMSE` | Root Mean Squared Error | `root_mean_squared_error` | complete |
 | `ME` | Max Error | `max_error` | complete |
+| `RMSD` | Root Mean Square Difference | `root_mean_square_difference` | complete |
 
 ## correlation and agreement
 
@@ -51,27 +56,22 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MASE` | Mean Absolute Scaled Error | `mean_absolute_scaled_error` | complete |
 | `A10` | A10 Index | `a10_index` | complete |
 | `MNB` | Mean Normalized Bias | `mean_normalized_bias` | complete |
+| `MNAE` | Mean Normalized Absolute Error | `mean_normalized_absolute_error` | complete |
+| `FAE` | Fractional Absolute Error | `fae` | complete |
+| `MFE` | Mean Fractional Error | `mean_fractional_error` | complete |
+| `MAGE` | Mean Absolute Gross Error | `mean_absolute_gross_error` | complete |
 
 ## percentage error
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | complete |
+| `FAC2` | Factor of Observations 2 | `factor_of_observations2` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `MNAE` | Mean Normalized Absolute Error | `mean_normalized_absolute_error` | pending |
-| `FB` | Fractional Bias | `fb` | pending |
-| `FAE` | Fractional Absolute Error | `fae` | pending |
-| `MFB` | Mean Fractional Bias | `mean_fractional_bias` | pending |
-| `MFE` | Mean Fractional Error | `mean_fractional_error` | pending |
-| `MAGE` | Mean Absolute Gross Error | `mean_absolute_gross_error` | pending |
-| `GMB` | Geometric Mean Bias | `geometric_mean_bias` | pending |
-| `FAC2` | Factor of Observations 2 | `factor_of_observations2` | pending |
-| `MBD` | Mean Bias Difference | `mean_bias_difference` | pending |
-| `RMSD` | Root Mean Square Difference | `root_mean_square_difference` | pending |
 | `MAD` | Mean Absolute Difference | `mean_absolute_difference` | pending |
 | `SD` | Standard Deviation of Residual | `standard_deviation_of_residual` | pending |
 | `SBF` | Slope of Best-Fit Line | `slope_of_best_fit_line` | pending |

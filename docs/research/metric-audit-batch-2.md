@@ -123,12 +123,10 @@ policies are applied only after shared filtering.
 
 - **Definition ambiguity.** `A10` is not a generally standardized regression
   statistic, and no foundational or standards source was identified that
-  uniquely owns this abbreviation. Applied prediction papers commonly use an
-  “a10-index” for the fraction satisfying
-  \(0.9\le p_i/o_i\le1.1\), but that usage does not establish a universal
-  metric. The canonical definition is therefore recorded as unknown, with
-  this ambiguity explained rather than inferred from an adjacent tolerance
-  API. NumPy's maintained `isclose` documentation provides useful
+  uniquely owns this abbreviation. The canonical definition is therefore
+  recorded as unknown, with this ambiguity explained rather than inferred
+  from an adjacent tolerance API. NumPy's maintained `isclose` documentation
+  provides useful
   [tolerance and near-zero context](https://numpy.org/doc/stable/reference/generated/numpy.isclose.html),
   but does not define or validate an A10 index. The absence of a cited domain
   definition is material because ratios require positive, nonzero

@@ -276,8 +276,8 @@ def test_synthesis_reports_are_deterministic_and_committed():
 
     assert first_audit == second_audit == REPORT_PATH.read_text()
     assert first_findings == second_findings == FINDINGS_PATH.read_text()
-    assert "| `possible-defect` | 17 | High |" in first_audit
-    assert "| High | 17 |" in first_findings
+    assert "| `possible-defect` | 16 | High |" in first_audit
+    assert "| High | 16 |" in first_findings
     assert "requires separate approval" in first_findings
 
 

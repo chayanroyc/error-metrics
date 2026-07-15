@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Mapping
 ROOT = Path(__file__).resolve().parents[1]
 INVENTORY_PATH = ROOT / "audit" / "metrics.yaml"
 REPORT_PATH = ROOT / "docs" / "metric-audit.md"
+FINDINGS_PATH = ROOT / "docs" / "metric-audit-findings.md"
 
 PENDING_FIELDS = ("status", "name", "method")
 COMPLETE_FIELDS = PENDING_FIELDS + (
@@ -81,6 +82,24 @@ FINDING_TYPES = {
     "definition-variant",
     "possible-defect",
     "duplicate-or-overlap",
+}
+FINDING_ORDER = (
+    "possible-defect",
+    "definition-variant",
+    "validation-gap",
+    "duplicate-or-overlap",
+    "test-gap",
+    "documentation-gap",
+    "consistent",
+)
+FINDING_PRIORITY = {
+    "possible-defect": "High",
+    "definition-variant": "Medium",
+    "validation-gap": "Medium",
+    "duplicate-or-overlap": "Low",
+    "test-gap": "Low",
+    "documentation-gap": "Low",
+    "consistent": "Low",
 }
 
 
@@ -300,7 +319,41 @@ def render_markdown(inventory: Mapping[str, Any]) -> str:
         f"- Completed: {completed}",
         f"- Pending: {pending}",
         "",
+        "### Metrics by category",
+        "",
+        "| Category | Metrics | Findings |",
+        "| --- | ---: | ---: |",
     ]
+
+    category_counts: Dict[str, List[int]] = {}
+    finding_counts = {finding_type: 0 for finding_type in FINDING_ORDER}
+    for record in metrics.values():
+        category = record.get("category", "Pending audit")
+        counts = category_counts.setdefault(category, [0, 0])
+        counts[0] += 1
+        counts[1] += len(record.get("findings", []))
+        for finding in record.get("findings", []):
+            finding_counts[finding["type"]] += 1
+    for category in sorted(category_counts):
+        metric_count, category_finding_count = category_counts[category]
+        lines.append(f"| {category} | {metric_count} | {category_finding_count} |")
+    lines.extend(
+        [
+            "",
+            "### Findings by type",
+            "",
+            "Priority is synthesis triage, not a change to the reviewed finding.",
+            "",
+            "| Finding type | Count | Review priority |",
+            "| --- | ---: | --- |",
+        ]
+    )
+    for finding_type in FINDING_ORDER:
+        lines.append(
+            f"| `{finding_type}` | {finding_counts[finding_type]} | "
+            f"{FINDING_PRIORITY[finding_type]} |"
+        )
+    lines.append("")
 
     categories: Dict[str, List[tuple]] = {}
     for abbreviation, record in metrics.items():
@@ -318,11 +371,101 @@ def render_markdown(inventory: Mapping[str, Any]) -> str:
         )
         for abbreviation, record in records:
             lines.append(
-                f"| `{abbreviation}` | {record['name']} | "
+                f"| <a id=\"metric-{abbreviation.lower()}\"></a>`{abbreviation}` | {record['name']} | "
                 f"`{record['method']}` | {record['status']} |"
             )
         lines.append("")
 
+    return "\n".join(lines)
+
+
+def _markdown_cell(value: str) -> str:
+    """Keep inventory prose inside one Markdown table cell."""
+    return value.replace("|", "\\|").replace("\n", " ")
+
+
+def render_findings_markdown(inventory: Mapping[str, Any]) -> str:
+    """Render the reviewed findings and non-binding Phase 2 triage."""
+    metrics = inventory["metrics"]
+    finding_counts = {finding_type: 0 for finding_type in FINDING_ORDER}
+    for record in metrics.values():
+        for finding in record["findings"]:
+            finding_counts[finding["type"]] += 1
+
+    priority_counts = {"High": 0, "Medium": 0, "Low": 0}
+    for finding_type, count in finding_counts.items():
+        priority_counts[FINDING_PRIORITY[finding_type]] += count
+
+    lines = [
+        "# Metric Audit Findings and Phase 2 Proposal",
+        "",
+        "This synthesis is generated from the 89 reviewed records in `audit/metrics.yaml`. It does not revise individual findings or approve runtime changes.",
+        "",
+        "## Review-priority summary",
+        "",
+        "Priority is a synthesis triage: High covers possible defects, Medium covers definition variants and validation gaps, and Low covers documentation, tests, overlaps, and consistent results.",
+        "",
+        "| Priority | Findings |",
+        "| --- | ---: |",
+    ]
+    for priority in ("High", "Medium", "Low"):
+        lines.append(f"| {priority} | {priority_counts[priority]} |")
+
+    headings = {
+        "possible-defect": "Evidence-backed possible defects",
+        "definition-variant": "Definition variants",
+        "validation-gap": "Validation gaps",
+        "duplicate-or-overlap": "Duplicate and overlap groups",
+        "test-gap": "Test gaps",
+        "documentation-gap": "Documentation gaps",
+    }
+    for finding_type in FINDING_ORDER[:-1]:
+        lines.extend(
+            [
+                "",
+                f"## {headings[finding_type]}",
+                "",
+                "| Metric record | Evidence | Impact | Reviewed future action |",
+                "| --- | --- | --- | --- |",
+            ]
+        )
+        for abbreviation, record in metrics.items():
+            for finding in record["findings"]:
+                if finding["type"] != finding_type:
+                    continue
+                link = f"[ `{abbreviation}` ](metric-audit.md#metric-{abbreviation.lower()})"
+                lines.append(
+                    f"| {link} | {_markdown_cell(finding['evidence'])} | "
+                    f"{_markdown_cell(finding['impact'])} | "
+                    f"{_markdown_cell(finding['recommended_future_action'])} |"
+                )
+
+    lines.extend(
+        [
+            "",
+            "## Unresolved source questions",
+            "",
+            "These are provenance questions preserved by the batch research, not inferred resolutions:",
+            "",
+            "- `A10`: no primary or authoritative source uniquely establishing the A10 name was located ([batch 2](research/metric-audit-batch-2.md)).",
+            "- `MNAE`: no primary or authoritative source uniquely defining the exact name was located ([batch 3](research/metric-audit-batch-3.md)).",
+            "- `nESkew` and `nEKurt`: the stated Correndo et al. attribution could not be verified ([batch 6](research/metric-audit-batch-6.md)).",
+            "- `RMBF`: no independent primary source for the exact unsigned transformation under this name was established ([batch 6](research/metric-audit-batch-6.md)).",
+            "- `TAcc`: no source for the exact fitted-slope formula was located ([batch 8](research/metric-audit-batch-8.md)).",
+            "- `NMAEp`: no located primary source establishes the exact name and denominator convention ([batch 9](research/metric-audit-batch-9.md)).",
+            "",
+            "## Non-binding Phase 2 proposal",
+            "",
+            "Every proposal below requires separate approval. Ordering reflects scientific risk first, then compatibility impact and implementation dependency; it is not authorization to change behavior.",
+            "",
+            "| Tier | Proposal | Scientific risk | Compatibility impact | Dependency | Approval |",
+            "| --- | --- | --- | --- | --- | --- |",
+            "| 1 | Resolve the intended identity/formula for `MAAPE`, `FB`, `MAGE`, `RAE`, `VAF`, `DE`, `WIAr`, `OVER`, `NMBF`, `AD`, and `NAE`; specify edge semantics for `TS`, `TAcc`, `iqRMSE`, and `MSLE`; implement `MASE.m` only after its contract is fixed. | High: reviewed records identify possible formula, sign, domain, or ideal-value defects. | High: values, ranges, exceptions, names, or parameter behavior may change. | Scientific decision and migration policy before code. | Separate approval required |",
+            "| 2 | Define shared domain and denominator policies, then address metric-specific validation gaps such as positive-domain ratios, zero means, constant series, sample size, boolean flags, and degrees of freedom. | Medium: invalid inputs currently yield misleading values, NaN, infinity, or low-level errors. | Medium to high: new validation or explicit edge results can break callers. | Tier 1 decisions plus a package-wide compatibility policy. | Separate approval required |",
+            "| 3 | Document standard variants and units, tuple/component order, effective-sample rules, and the overlap groups `EC`/`R2`, `MNAE`/`MAGE`, `SBF`/`VAF`, `MBF`/`NMBF`/`RMBF`/`RNMBF`, and `NSE`/`SS`; retain the new characterization coverage. | Low when documentation-only; higher if aliases are deprecated. | Low for documentation and tests; potentially high for registry cleanup. | Can start after Tier 1 naming decisions; registry changes remain separate. | Separate approval required |",
+            "",
+        ]
+    )
     return "\n".join(lines)
 
 
@@ -345,15 +488,22 @@ def _validate_command() -> int:
 
 def _render_command(check: bool, write: bool) -> int:
     rendered = render_markdown(load_inventory(INVENTORY_PATH))
+    findings_rendered = render_findings_markdown(load_inventory(INVENTORY_PATH))
     if write:
         REPORT_PATH.write_text(rendered, encoding="utf-8")
+        FINDINGS_PATH.write_text(findings_rendered, encoding="utf-8")
         print(f"Wrote {REPORT_PATH.relative_to(ROOT)}")
+        print(f"Wrote {FINDINGS_PATH.relative_to(ROOT)}")
         return 0
     if check:
         if not REPORT_PATH.is_file() or REPORT_PATH.read_text(encoding="utf-8") != rendered:
             print(f"Out of date: {REPORT_PATH.relative_to(ROOT)}")
             return 1
+        if not FINDINGS_PATH.is_file() or FINDINGS_PATH.read_text(encoding="utf-8") != findings_rendered:
+            print(f"Out of date: {FINDINGS_PATH.relative_to(ROOT)}")
+            return 1
         print(f"Up to date: {REPORT_PATH.relative_to(ROOT)}")
+        print(f"Up to date: {FINDINGS_PATH.relative_to(ROOT)}")
         return 0
     raise AssertionError("render mode not selected")
 

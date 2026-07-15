@@ -10,6 +10,7 @@ from error_metrics import MetricRegistry
 ROOT = Path(__file__).resolve().parents[2]
 INVENTORY_PATH = ROOT / "audit" / "metrics.yaml"
 REPORT_PATH = ROOT / "docs" / "metric-audit.md"
+FINDINGS_PATH = ROOT / "docs" / "metric-audit-findings.md"
 SCRIPT_PATH = ROOT / "scripts" / "audit_metrics.py"
 
 
@@ -182,6 +183,58 @@ def test_renderer_matches_committed_report():
     audit_metrics = load_audit_module()
     inventory = audit_metrics.load_inventory(INVENTORY_PATH)
     assert audit_metrics.render_markdown(inventory) == REPORT_PATH.read_text()
+
+
+def test_final_inventory_is_complete_and_characterized():
+    inventory = load_audit_module().load_inventory(INVENTORY_PATH)
+    records = inventory["metrics"].values()
+
+    assert len(inventory["metrics"]) == 89
+    assert all(record["status"] == "complete" for record in records)
+    assert all(record["verification"]["ordinary_case"].strip() for record in records)
+    assert all(record["verification"]["edge_case"].strip() for record in records)
+    assert all(record["verification"]["characterization_tests"] for record in records)
+
+
+def test_final_inventory_has_references_or_explicit_unknown_explanations():
+    inventory = load_audit_module().load_inventory(INVENTORY_PATH)
+
+    for abbreviation, record in inventory["metrics"].items():
+        basis = record["scientific_basis"]
+        has_reference = bool(basis["references"])
+        explicit_unknown = (
+            "unknown" in basis["canonical_definition"].lower()
+            and len(basis["canonical_definition"].split()) > 1
+        )
+        assert has_reference or explicit_unknown, abbreviation
+
+
+def test_final_inventory_uses_every_controlled_finding_type():
+    audit_metrics = load_audit_module()
+    inventory = audit_metrics.load_inventory(INVENTORY_PATH)
+    observed = {
+        finding["type"]
+        for record in inventory["metrics"].values()
+        for finding in record["findings"]
+    }
+
+    assert observed == audit_metrics.FINDING_TYPES
+
+
+def test_synthesis_reports_are_deterministic_and_committed():
+    audit_metrics = load_audit_module()
+    inventory = audit_metrics.load_inventory(INVENTORY_PATH)
+
+    first_audit = audit_metrics.render_markdown(inventory)
+    second_audit = audit_metrics.render_markdown(inventory)
+    first_findings = audit_metrics.render_findings_markdown(inventory)
+    second_findings = audit_metrics.render_findings_markdown(inventory)
+
+    assert first_audit == second_audit == REPORT_PATH.read_text()
+    assert first_findings == second_findings == FINDINGS_PATH.read_text()
+    assert "| `possible-defect` | 17 | High |" in first_audit
+    assert "| High | 17 |" in first_findings
+    assert "requires separate approval" in first_findings
 
 
 def test_validate_cli_runs_from_repository_root():

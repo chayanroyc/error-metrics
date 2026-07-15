@@ -14,9 +14,9 @@ BATCH = ("MAD", "SD", "SBF", "U95", "TS", "NSE", "NNSE", "RAE", "VAF", "RSE")
 def test_batch_4_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
     completed = [key for key, record in inventory["metrics"].items() if record["status"] == "complete"]
-    assert completed[-len(BATCH):] == list(BATCH)
-    assert len(completed) == 40
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) == 49
+    assert completed[:40][-len(BATCH):] == list(BATCH)
+    assert len(completed) >= 40
+    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) <= 49
 
 
 def test_batch_4_metrics_match_ordinary_hand_calculations():

@@ -522,54 +522,134 @@
       "findings": [{"type": "consistent", "evidence": "For valid predictor count and same-sample fitted predictions, runtime matches sqrt(RSS/(n-p-1)).", "impact": "Ordinary values follow the standard regression formula.", "recommended_future_action": "Document that p excludes the intercept and predictions should derive from the fitted model."}, {"type": "validation-gap", "evidence": "p accepts values producing zero or negative degrees of freedom, nonintegers, and negative counts.", "impact": "Calls can raise ZeroDivisionError or return NaN and can use nonsensical degrees of freedom.", "recommended_future_action": "Validate p as a nonnegative integer satisfying p < N-1 in a separately approved runtime change."}]
     },
     "KGE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Kling-Gupta Efficiency",
-      "method": "kling_gupta_efficiency"
+      "method": "kling_gupta_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "4-tuple (score, correlation, standard-deviation ratio, mean ratio)", "implemented_range": "score (-infinity, 1] when defined; components may be nonfinite", "ideal_value": "(1, 1, 1, 1)"},
+      "implemented_behavior": {"formula": "1 - sqrt((r-1)^2 + (alpha-1)^2 + (beta-1)^2), alpha=std(prediction)/std(observation), beta=mean(prediction)/mean(observation)", "preprocessing": ["Convert to equal-shaped float arrays.", "Flatten and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["NumPy corrcoef and sqrt", "Bottleneck nanstd", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite input pairs are removed; computed nonfinite components propagate.", "zero_inputs_or_denominators": "Zero observed standard deviation or mean makes alpha or beta NaN through _safe_divide.", "negative_inputs": "Accepted; a negative or zero observed mean can make beta negative or undefined.", "constant_series": "Correlation is NaN and exact constant agreement returns (NaN, NaN, NaN, 1).", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The 2009 KGE uses correlation r, variability ratio alpha=sigma_s/sigma_o, and bias ratio beta=mu_s/mu_o in Euclidean distance from (1,1,1).", "references": [{"type": "primary", "title": "Decomposition of the mean squared error and NSE performance criteria: Implications for improving hydrological modelling", "authors_or_organization": "Gupta, Kling, Yilmaz, and Martinez", "year": 2009, "url_or_doi": "https://doi.org/10.1016/j.jhydrol.2009.08.003", "supports": "Introduces the three-component KGE construction."}], "known_variants": ["KGE2012 replaces the standard-deviation ratio with a coefficient-of-variation ratio; KGE double prime replaces the mean ratio with normalized additive bias."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_kge_family_distinguishes_component_definitions", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "For prediction [2,4,6] and observation [1,3,5], r=1, alpha=1, beta=4/3, and KGE=2/3.", "edge_case": "Exact constant agreement returns a NaN score because correlation and alpha are undefined."},
+      "findings": [{"type": "consistent", "evidence": "The returned components and score match the original 2009 definition for nondegenerate data.", "impact": "The tuple makes each diagnostic component visible.", "recommended_future_action": "Document tuple order and undefined constant/zero-mean cases."}]
     },
     "KGE2012": {
-      "status": "pending",
+      "status": "complete",
       "name": "Modified Kling-Gupta Efficiency",
-      "method": "modified_kling_gupta_efficiency"
+      "method": "modified_kling_gupta_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "4-tuple (score, correlation, coefficient-of-variation ratio, mean ratio)", "implemented_range": "score (-infinity, 1] when defined; ZeroDivisionError is possible", "ideal_value": "(1, 1, 1, 1)"},
+      "implemented_behavior": {"formula": "1 - sqrt((r-1)^2 + (gamma-1)^2 + (beta-1)^2), gamma=(std(prediction)/mean(prediction))/(std(observation)/mean(observation)), beta=mean(prediction)/mean(observation)", "preprocessing": ["Convert, flatten, and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["NumPy corrcoef and sqrt", "Bottleneck nanstd"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed; computed NaN propagates.", "zero_inputs_or_denominators": "Python-float division by a zero observed mean or coefficient of variation raises ZeroDivisionError.", "negative_inputs": "Accepted; signed means affect both gamma and beta.", "constant_series": "Exact nonzero constant agreement raises ZeroDivisionError while forming gamma.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "KGE prime retains r and beta but uses gamma=CV_s/CV_o as its variability component.", "references": [{"type": "primary", "title": "Runoff conditions in the upper Danube basin under an ensemble of climate change scenarios", "authors_or_organization": "Kling, Fuchs, and Paulin", "year": 2012, "url_or_doi": "https://doi.org/10.1016/j.jhydrol.2012.01.011", "supports": "Defines modified KGE with coefficient-of-variation ratio gamma."}], "known_variants": ["The implementation calls the third tuple member alpha although the source commonly denotes this CV ratio gamma."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_kge_family_distinguishes_component_definitions", "tests/audit/test_characterization_batch_5.py::test_zero_observation_mean_distinguishes_ratio_and_normalized_bias_variants"], "ordinary_case": "The ordinary sample has r=1, gamma=3/4, beta=4/3, and score 7/12.", "edge_case": "A zero observation mean raises ZeroDivisionError rather than returning a nonfinite tuple."},
+      "findings": [{"type": "consistent", "evidence": "The ordinary formula uses the published CV ratio and mean ratio.", "impact": "It is distinct from KGE 2009 despite the local alpha variable name.", "recommended_future_action": "Document the third returned component as gamma/CV ratio."}, {"type": "validation-gap", "evidence": "Zero means and constant agreement can raise raw ZeroDivisionError.", "impact": "Degenerate inputs do not return a stable tuple shape.", "recommended_future_action": "Consider explicit denominator handling in a separately approved runtime change."}]
     },
     "KGEdp": {
-      "status": "pending",
+      "status": "complete",
       "name": "Kling-Gupta Efficiency Double Prime",
-      "method": "kling_gupta_efficiency_double_prime"
+      "method": "kling_gupta_efficiency_double_prime",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "4-tuple (score, correlation, standard-deviation ratio, normalized bias)", "implemented_range": "score (-infinity, 1] when defined; ZeroDivisionError is possible", "ideal_value": "(1, 1, 1, 0)"},
+      "implemented_behavior": {"formula": "1 - sqrt((r-1)^2 + (alpha-1)^2 + beta_n^2), alpha=std(prediction)/std(observation), beta_n=(mean(prediction)-mean(observation))/std(observation)", "preprocessing": ["Convert, flatten, and drop nonfinite pairs.", "Raise ValueError if no finite pair remains."], "dependencies": ["NumPy corrcoef and sqrt", "Bottleneck nanstd"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed.", "zero_inputs_or_denominators": "Zero observed standard deviation raises ZeroDivisionError; zero observed mean alone is supported.", "negative_inputs": "Accepted without a mean-ratio singularity.", "constant_series": "Zero observed spread raises ZeroDivisionError.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "KGE double prime uses r, standard-deviation ratio alpha, and normalized additive bias beta_n whose ideal is zero.", "references": [{"type": "primary", "title": "SC-Earth: A Station-Based Serially Complete Earth Dataset from 1950 to 2019", "authors_or_organization": "Tang, Clark, and Papalexiou", "year": 2021, "url_or_doi": "https://doi.org/10.1175/JCLI-D-21-0067.1", "supports": "Defines the 2021 KGE double-prime components, including normalized bias."}], "known_variants": ["Unlike KGE and KGE prime, beta_n is squared directly because its ideal is zero."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_kge_family_distinguishes_component_definitions", "tests/audit/test_characterization_batch_5.py::test_zero_observation_mean_distinguishes_ratio_and_normalized_bias_variants"], "ordinary_case": "The ordinary sample gives r=alpha=1, beta_n=sqrt(3/8), and score 1-sqrt(3/8).", "edge_case": "With observation mean zero but nonzero spread, the score remains defined; constant observations raise ZeroDivisionError."},
+      "findings": [{"type": "consistent", "evidence": "Runtime uses additive normalized bias with ideal zero, distinct from both earlier KGE variants.", "impact": "Zero-mean observations can be evaluated when their spread is nonzero.", "recommended_future_action": "Document the component's zero ideal and constant-series failure."}]
     },
     "DE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Diagnostic Efficiency",
-      "method": "diagnostic_efficiency"
+      "method": "diagnostic_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "4-tuple (score, correlation, dynamic FDC bias, mean FDC bias)", "implemented_range": "(-infinity, 1] score, or NaN", "ideal_value": "1 (implemented normalized variant); source DE ideal is 0"},
+      "implemented_behavior": {"formula": "1 - sqrt(B_rel_mean^2 + B_area^2 + (r-1)^2), with independently descending positive-observation FDCs and trapezoidal integration of absolute residual relative bias", "preprocessing": ["Shared finite-pair filtering.", "Keep only positions with positive observations for FDC components.", "Sort retained predictions and observations independently descending."], "dependencies": ["NumPy corrcoef, sort, linspace, trapz"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed before all calculations.", "zero_inputs_or_denominators": "Zero/nonpositive observations are excluded from the FDC; fewer than two positive observations returns NaN components except r.", "negative_inputs": "Negative observations are excluded from FDC components but remain in timing correlation.", "constant_series": "A constant input makes r NaN and therefore score NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Published DE is the Euclidean distance of constant, dynamic, and timing errors and has ideal zero.", "references": [{"type": "primary", "title": "Technical note: Diagnostic efficiency – specific evaluation of model performance", "authors_or_organization": "Schwemmle, Demand, and Weiler", "year": 2021, "url_or_doi": "https://doi.org/10.5194/hess-25-2187-2021", "supports": "Defines DE, its FDC components, and its zero optimum."}], "known_variants": ["The implementation uses the later normalized transformation 1-DE, whose optimum is one."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_composite_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_diagnostic_efficiency_requires_two_positive_observations"], "ordinary_case": "The ordinary sample gives B_rel_mean=23/45, B_area=13/45, r=1, and implemented score 1-sqrt((23/45)^2+(13/45)^2).", "edge_case": "Only one positive observation returns (NaN, r, NaN, NaN)."},
+      "findings": [{"type": "definition-variant", "evidence": "The primary paper's DE is a distance with ideal zero; runtime returns one minus that distance.", "impact": "Name and direction differ from the original metric although decomposition is recognizable.", "recommended_future_action": "Document this as normalized DE and retain source DE terminology distinctly."}]
     },
     "LME": {
-      "status": "pending",
+      "status": "complete",
       "name": "Liu Model Efficiency",
-      "method": "liu_model_efficiency"
+      "method": "liu_model_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "5-tuple (score, correlation, variability ratio, bias ratio, forward slope)", "implemented_range": "(-infinity, 1] score, including -infinity; NaN possible", "ideal_value": "(1, 1, 1, 1, 1)"},
+      "implemented_behavior": {"formula": "1 - sqrt((r*alpha-1)^2 + (beta-1)^2)", "preprocessing": ["Convert, flatten, and drop nonfinite pairs."], "dependencies": ["NumPy corrcoef and sqrt", "Bottleneck nanstd"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed; calculated infinities/NaNs remain.", "zero_inputs_or_denominators": "Zero observed mean maps beta to 1 if both means are zero, otherwise infinity; zero observed spread similarly maps alpha.", "negative_inputs": "Accepted; signed mean ratio affects beta.", "constant_series": "Correlation is NaN even when alpha is forced to one, so score is NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Liu mean efficiency combines forward least-squares slope r*alpha and mean ratio beta.", "references": [{"type": "primary", "title": "A rational performance criterion for hydrological model", "authors_or_organization": "Dedi Liu", "year": 2020, "url_or_doi": "https://doi.org/10.1016/j.jhydrol.2020.125488", "supports": "Introduces Liu mean efficiency and its combined slope/bias formula."}], "known_variants": []},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_composite_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_zero_observation_mean_distinguishes_ratio_and_normalized_bias_variants"], "ordinary_case": "r=alpha=slope=1 and beta=4/3 give LME=2/3.", "edge_case": "A nonzero prediction mean with zero observation mean yields beta infinity and score negative infinity."},
+      "findings": [{"type": "consistent", "evidence": "Ordinary behavior matches the published combined forward-slope and bias formula.", "impact": "Five returned values expose the calculation.", "recommended_future_action": "Document tuple order and nonfinite degeneracies."}]
     },
     "LCEf": {
-      "status": "pending",
+      "status": "complete",
       "name": "Least-squares Combined Efficiency",
-      "method": "least_squares_combined_efficiency"
+      "method": "least_squares_combined_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "6-tuple (score, correlation, variability ratio, bias ratio, forward slope, reverse slope)", "implemented_range": "(-infinity, 1] score, including -infinity; NaN possible", "ideal_value": "(1, 1, 1, 1, 1, 1)"},
+      "implemented_behavior": {"formula": "1 - sqrt((r*alpha-1)^2 + (r/alpha-1)^2 + (beta-1)^2)", "preprocessing": ["Convert, flatten, and drop nonfinite pairs."], "dependencies": ["NumPy corrcoef and sqrt", "Bottleneck nanstd"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed; computed NaN remains.", "zero_inputs_or_denominators": "Zero mean or observed spread is mapped to explicit ratios; alpha zero makes reverse slope infinity and score negative infinity.", "negative_inputs": "Accepted; signed mean ratio affects beta.", "constant_series": "Correlation and both slopes are NaN for exact constant agreement.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Least-squares combined efficiency adds forward and reverse regression slope distances to mean-ratio distance.", "references": [{"type": "primary", "title": "A rebalanced performance criterion for hydrological model calibration", "authors_or_organization": "Lee and Choi", "year": 2022, "url_or_doi": "https://doi.org/10.1016/j.jhydrol.2021.127372", "supports": "Introduces LCE using r*alpha, r/alpha, and beta."}], "known_variants": ["The paper calls the metric LCE; this registry uses LCEf to avoid collision with its Legates metric abbreviation."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_composite_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "Both slopes equal one and beta=4/3, giving score 2/3.", "edge_case": "Exact constant agreement returns NaN score and slopes despite forced alpha and beta of one."},
+      "findings": [{"type": "consistent", "evidence": "Ordinary runtime matches Lee and Choi's bidirectional-slope formula.", "impact": "The local abbreviation differs only to disambiguate registry identities.", "recommended_future_action": "Document that LCEf corresponds to published LCE."}]
     },
     "WIA": {
-      "status": "pending",
+      "status": "complete",
       "name": "Willmott's Index of Agreement",
-      "method": "willmotts_index_of_agreement"
+      "method": "willmotts_index_of_agreement",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, 1] for defined finite data; ZeroDivisionError possible", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1 - sum((prediction-observation)^2) / sum((abs(prediction-mean(observation))+abs(observation-mean(observation)))^2)", "preprocessing": ["Convert, flatten, and drop nonfinite pairs."], "dependencies": ["Bottleneck nansum"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed.", "zero_inputs_or_denominators": "An exactly zero potential-error denominator raises ZeroDivisionError.", "negative_inputs": "Accepted without domain restriction.", "constant_series": "Exact constant agreement raises ZeroDivisionError.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Willmott's original d is one minus squared error divided by squared potential error about the observed mean.", "references": [{"type": "primary", "title": "On the validation of models", "authors_or_organization": "Willmott", "year": 1981, "url_or_doi": "https://doi.org/10.1080/02723646.1981.10642213", "supports": "Introduces the index of agreement and potential-error denominator."}], "known_variants": ["Absolute-error modified and refined indices reduce squared-error sensitivity."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_efficiency_metrics", "tests/test_error_metrics.py::test_metric_bounds"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_agreement_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "Squared error 3 and potential-error sum 35 give d=32/35.", "edge_case": "Exact constant agreement attempts 0/0 and raises ZeroDivisionError."},
+      "findings": [{"type": "consistent", "evidence": "The nondegenerate formula matches the original squared index of agreement.", "impact": "Ordinary values have the established interpretation.", "recommended_future_action": "Document the exact-constant exception."}]
     },
     "WIAr": {
-      "status": "pending",
+      "status": "complete",
       "name": "Refined Index of Agreement",
-      "method": "refined_index_of_agreement"
+      "method": "refined_index_of_agreement",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, 1] for finite nondegenerate data; source range is [-1, 1]; ZeroDivisionError possible", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "A=sum(abs(prediction-observation)); B=2*sum(abs(observation-mean(observation))); if A<=B return 1-A/B, else return 1-B/A", "preprocessing": ["Convert, flatten, and drop nonfinite pairs."], "dependencies": ["Bottleneck nansum"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed.", "zero_inputs_or_denominators": "A=B=0 raises ZeroDivisionError in the first branch.", "negative_inputs": "Accepted without domain restriction.", "constant_series": "Exact constant agreement raises ZeroDivisionError; imperfect constants enter the second branch and return one.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Refined d_r returns 1-A/B when A<=B and B/A-1 when A>B, yielding range [-1,1].", "references": [{"type": "primary", "title": "A refined index of model performance", "authors_or_organization": "Willmott, Robeson, and Matsuura", "year": 2012, "url_or_doi": "https://doi.org/10.1002/joc.2419", "supports": "Defines the piecewise refined index and its negative second branch."}], "known_variants": []},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_msd_decomposition"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_agreement_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_refined_index_poor_fit_branch_has_implemented_positive_sign", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "A=3 and B=8 use the first branch and return 5/8.", "edge_case": "Exact constant agreement raises ZeroDivisionError; A>B cases have the opposite sign from the source formula."},
+      "findings": [{"type": "possible-defect", "evidence": "The source's A>B branch is B/A-1, but runtime returns 1-B/A.", "impact": "Poor fits that should be negative are reported positive, collapsing implemented range to nonnegative values.", "recommended_future_action": "Correct the branch only in a separately approved behavior change with migration notes."}]
     },
     "LCE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Legates Coefficient of Efficiency",
-      "method": "legates_coefficient_of_efficiency"
+      "method": "legates_coefficient_of_efficiency",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, 1], or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1 - sum(abs(prediction-observation)) / sum(abs(observation-mean(observation)))", "preprocessing": ["Convert, flatten, and drop nonfinite pairs."], "dependencies": ["Bottleneck nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed.", "zero_inputs_or_denominators": "Zero observed absolute-deviation denominator returns NaN.", "negative_inputs": "Accepted without domain restriction.", "constant_series": "Any constant observation series returns NaN, including exact agreement.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The modified coefficient E1 uses absolute residuals relative to absolute deviations from the observed mean.", "references": [{"type": "primary", "title": "Evaluating the use of goodness-of-fit measures in hydrologic and hydroclimatic model validation", "authors_or_organization": "Legates and McCabe", "year": 1999, "url_or_doi": "https://doi.org/10.1029/1998WR900018", "supports": "Presents the absolute-error modified coefficient of efficiency."}], "known_variants": ["Published notation is commonly E1 rather than LCE; LCE also names Lee and Choi's different least-squares metric."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_agreement_efficiencies_match_ordinary_hand_calculations", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "Absolute error 3 divided by observed absolute deviation 4 gives 1/4.", "edge_case": "Constant observations make the reference denominator zero and return NaN."},
+      "findings": [{"type": "consistent", "evidence": "Runtime matches the Legates-McCabe absolute-error efficiency formula.", "impact": "It is less outlier-sensitive than squared NSE.", "recommended_future_action": "Document the E1 literature notation and constant-series NaN."}, {"type": "documentation-gap", "evidence": "The abbreviation LCE is not the paper's standard notation and overlaps conceptually with published least-squares combined efficiency.", "impact": "Users may confuse two unrelated metrics.", "recommended_future_action": "Cross-reference E1 and disambiguate LCE versus LCEf."}]
     },
     "KSI": {
-      "status": "pending",
+      "status": "complete",
       "name": "Kolmogorov-Smirnov Test Integral",
-      "method": "ksi"
+      "method": "ksi",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) raw; [0, infinity) percent when normalization is defined; NaN on zero range", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sum(abs(ECDF_observation(x_i)-ECDF_prediction(x_i)) * (x_(i+1)-x_i)) over the sorted unique pooled grid; normalized value is 100*KSI/(1.63/sqrt(N)*(max(x)-min(x)))", "preprocessing": ["Convert, flatten, and drop nonfinite pairs.", "Build ECDFs on filtered samples.", "Use sorted unique pooled sample values as the integration grid."], "dependencies": ["Statsmodels ECDF", "NumPy unique and diff", "_safe_divide"]},
+      "parameters": [{"name": "normed", "default": true, "accepted_types": ["Any value interpreted by Python truth testing"], "validation": "None.", "invalid_behavior": "Truthiness selects normalized versus raw output; no strict boolean validation."}],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed before constructing ECDFs.", "zero_inputs_or_denominators": "A zero pooled range makes normalized critical area zero and returns NaN; raw KSI is zero.", "negative_inputs": "Accepted; only pooled spacing and ranks matter.", "constant_series": "Normalized output is NaN for a common constant; distinct constants have positive range and finite output.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "KSI integrates absolute separation between two empirical CDFs; percent KSI divides by a Kolmogorov-Smirnov critical area.", "references": [{"type": "primary", "title": "Analysis of different comparison parameters applied to solar radiation data from satellite and German radiometric stations", "authors_or_organization": "Espinar and coauthors", "year": 2009, "url_or_doi": "https://doi.org/10.1016/j.solener.2008.07.009", "supports": "Introduces KSI as integrated ECDF separation and normalized critical-area percentage."}], "known_variants": ["Critical constants vary with confidence level and sample-size convention; runtime fixes 1.63 and uses only observation N."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_distribution_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_5.py::test_ksi_integrates_only_over_unique_sample_grid", "tests/audit/test_characterization_batch_5.py::test_constant_identical_series_expose_denominator_failures"], "ordinary_case": "On pooled grid [1,2,3,4,5,6], left-rectangle ECDF gaps integrate to raw KSI 1 and normalized KSI 100/(1.63*5/sqrt(3)).", "edge_case": "Identical constants have raw area zero but normalized 0/0 returns NaN."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime uses a left-rectangle sum on the pooled discontinuity grid and fixed 1.63 critical factor; source presentations describe the integral and commonly trapezoidal numerical evaluation.", "impact": "Discrete numerical values and normalization depend on grid and convention.", "recommended_future_action": "Document the exact grid, rectangle rule, confidence factor, and one-sample N convention."}, {"type": "validation-gap", "evidence": "normed is truth-tested rather than validated as bool.", "impact": "Unexpected truthy values silently request normalized output.", "recommended_future_action": "Validate the parameter in a separately approved runtime change."}]
     },
     "PHI": {
       "status": "pending",

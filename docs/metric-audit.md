@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 40
-- Pending: 49
+- Completed: 50
+- Pending: 39
 
 ## bias
 
@@ -51,6 +51,15 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `NSE` | Nash-Sutcliffe Efficiency | `nash_sutcliffe_efficiency` | complete |
 | `NNSE` | Normalized NSE | `normalized_nse` | complete |
 | `VAF` | Variance Accounted For | `variance_accounted_for` | complete |
+| `KGE` | Kling-Gupta Efficiency | `kling_gupta_efficiency` | complete |
+| `KGE2012` | Modified Kling-Gupta Efficiency | `modified_kling_gupta_efficiency` | complete |
+| `KGEdp` | Kling-Gupta Efficiency Double Prime | `kling_gupta_efficiency_double_prime` | complete |
+| `DE` | Diagnostic Efficiency | `diagnostic_efficiency` | complete |
+| `LME` | Liu Model Efficiency | `liu_model_efficiency` | complete |
+| `LCEf` | Least-squares Combined Efficiency | `least_squares_combined_efficiency` | complete |
+| `WIA` | Willmott's Index of Agreement | `willmotts_index_of_agreement` | complete |
+| `WIAr` | Refined Index of Agreement | `refined_index_of_agreement` | complete |
+| `LCE` | Legates Coefficient of Efficiency | `legates_coefficient_of_efficiency` | complete |
 
 ## normalized and relative error
 
@@ -78,20 +87,16 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | complete |
 | `FAC2` | Factor of Observations 2 | `factor_of_observations2` | complete |
 
+## distribution and statistical comparison
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `KSI` | Kolmogorov-Smirnov Test Integral | `ksi` | complete |
+
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `KGE` | Kling-Gupta Efficiency | `kling_gupta_efficiency` | pending |
-| `KGE2012` | Modified Kling-Gupta Efficiency | `modified_kling_gupta_efficiency` | pending |
-| `KGEdp` | Kling-Gupta Efficiency Double Prime | `kling_gupta_efficiency_double_prime` | pending |
-| `DE` | Diagnostic Efficiency | `diagnostic_efficiency` | pending |
-| `LME` | Liu Model Efficiency | `liu_model_efficiency` | pending |
-| `LCEf` | Least-squares Combined Efficiency | `least_squares_combined_efficiency` | pending |
-| `WIA` | Willmott's Index of Agreement | `willmotts_index_of_agreement` | pending |
-| `WIAr` | Refined Index of Agreement | `refined_index_of_agreement` | pending |
-| `LCE` | Legates Coefficient of Efficiency | `legates_coefficient_of_efficiency` | pending |
-| `KSI` | Kolmogorov-Smirnov Test Integral | `ksi` | pending |
 | `PHI` | Percentage of Histogram Intersection | `phi` | pending |
 | `SUSE` | Scaled and Unscaled Shannon Entropy Difference | `suse` | pending |
 | `OVER` | Over-estimation Metric | `over_metric` | pending |

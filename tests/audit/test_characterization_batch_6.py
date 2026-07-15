@@ -68,6 +68,24 @@ def test_over_uses_directional_left_rectangle_area_and_fixed_normalizer():
     assert metrics.over_metric(normed="normalized") == pytest.approx(metrics.over_metric())
 
 
+def test_over_is_directional_while_canonical_thresholded_gap_is_zero():
+    predictions = np.array([0.0, 2.0, 4.0])
+    observations = np.array([1.0, 3.0, 5.0])
+    assert ErrorMetrics(predictions, observations).over_metric(normed=False) == pytest.approx(1)
+    assert ErrorMetrics(observations, predictions).over_metric(normed=False) == pytest.approx(0)
+
+    pooled = np.unique(np.r_[predictions, observations])
+    pred_ecdf = np.searchsorted(np.sort(predictions), pooled, side="right") / 3
+    obs_ecdf = np.searchsorted(np.sort(observations), pooled, side="right") / 3
+    critical_gap = 1.63 / np.sqrt(3)
+    assert np.max(np.abs(pred_ecdf - obs_ecdf)) == pytest.approx(1 / 3)
+    assert critical_gap > np.max(np.abs(pred_ecdf - obs_ecdf))
+    canonical_over = np.sum(
+        np.maximum(np.abs(pred_ecdf - obs_ecdf)[:-1] - critical_gap, 0) * np.diff(pooled)
+    )
+    assert canonical_over == pytest.approx(0)
+
+
 def test_constant_distributions_expose_metric_specific_behavior():
     identical = ErrorMetrics([2, 2, 2, 2], [2, 2, 2, 2])
     assert identical.phi() == pytest.approx(1)
@@ -99,6 +117,29 @@ def test_bias_factors_distinguish_positive_domain_from_unrestricted_ratio():
     with pytest.raises(ValueError, match="strictly positive"):
         zero_observation_mean.mean_bias_factor()
     assert np.isnan(zero_observation_mean.nmbf())
+
+
+def test_bias_factors_pin_reciprocal_underprediction_and_same_sign_negative_means():
+    underprediction = ErrorMetrics([1, 2], [2, 4])
+    assert underprediction.mean_bias_factor() == pytest.approx(1 / 2)
+    assert underprediction.relative_mean_bias_factor() == pytest.approx(1 / 2)
+    assert underprediction.nmbf() == pytest.approx(1 / 2)
+
+    both_negative = ErrorMetrics([-1, -2], [-2, -4])
+    with pytest.raises(ValueError, match="strictly positive"):
+        both_negative.mean_bias_factor()
+    with pytest.raises(ValueError, match="strictly positive"):
+        both_negative.relative_mean_bias_factor()
+    assert both_negative.nmbf() == pytest.approx(1 / 2)
+
+
+def test_review_characterizations_are_linked_from_inventory_records():
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())["metrics"]
+    over_test = "tests/audit/test_characterization_batch_6.py::test_over_is_directional_while_canonical_thresholded_gap_is_zero"
+    bias_test = "tests/audit/test_characterization_batch_6.py::test_bias_factors_pin_reciprocal_underprediction_and_same_sign_negative_means"
+    assert over_test in inventory["OVER"]["verification"]["characterization_tests"]
+    for abbreviation in ("MBF", "RMBF", "NMBF"):
+        assert bias_test in inventory[abbreviation]["verification"]["characterization_tests"]
 
 
 def test_nonfinite_pairs_are_removed_and_empty_filtered_data_is_rejected():

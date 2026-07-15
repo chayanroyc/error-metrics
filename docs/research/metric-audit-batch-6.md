@@ -105,6 +105,15 @@ divides by the canonical critical area, which does not restore the canonical
 identity. Tests should distinguish these behaviors and pin the left-step ECDF
 integration convention on the sorted union grid.
 
+For the hand sample \(P=[0,2,4]\), \(O=[1,3,5]\), the runtime's positive
+directional gaps integrate to 1; swapping prediction and observation makes
+every selected directional gap zero, so runtime OVER becomes 0. The absolute
+ECDF separation is only \(1/3\) at its maximum, while
+\(V_c=1.63/\sqrt{3}\approx0.941\). Therefore every canonical integrand
+\(\max(|F_P-F_O|-V_c,0)\) is zero and Espinar OVER is exactly 0 regardless of
+orientation. This directly demonstrates both runtime asymmetry and the
+missing canonical threshold rather than inferring them from formulas alone.
+
 ## Observation-only dispersion metrics
 
 ### `IQR`
@@ -237,6 +246,16 @@ on positive means (apart from MBF's validation), has apparent optimum 1, and is
 not the primary-source NMBF. Zero observed mean yields safe-divide nonfinite
 behavior; negative and opposite-sign means are accepted even though the factor
 interpretation does not apply.
+
+The reciprocal hand cases make the distinction concrete. With positive means
+\(\bar P=1.5\), \(\bar O=3\), runtime MBF and NMBF both return \(1/2\), while
+runtime RMBF returns \(|1/2-1|=1/2\); canonical Yu NMBF would return
+\(1-3/1.5=-1\). With both means negative, \(\bar P=-1.5\) and \(\bar O=-3\),
+runtime MBF/RMBF reject the means but runtime NMBF again returns the raw signed
+ratio \(1/2\). Gustafson and Yu explicitly handle same-sign negative means via
+absolute magnitudes in an extension of the piecewise canonical metric. The
+test records the runtime result and this scientific distinction; it does not
+implement or call the canonical extension.
 
 ## Audit-critical findings to verify
 

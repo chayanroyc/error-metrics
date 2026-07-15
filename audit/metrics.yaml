@@ -912,54 +912,134 @@
       "findings": [{"type": "documentation-gap", "evidence": "Runtime silently omits zero actuals rather than treating canonical MAPE as undefined for the dataset.", "impact": "Errors at zeros are invisible and the averaging population changes.", "recommended_future_action": "Document zero omission and MAPE's asymmetry; consider explicit policy only in a separately approved runtime change."}]
     },
     "sMAPE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Symmetric Mean Absolute Percentage Error",
-      "method": "symmetric_mean_absolute_percentage_error"
+      "method": "symmetric_mean_absolute_percentage_error",
+      "category": "percentage error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, 200] percentage or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "100*mean(|prediction-observation|/((|observation|+|prediction|)/2)), omitting zero denominators.", "preprocessing": ["Drop nonfinite pairs.", "Replace pairs where both values are zero with NaN contributions."], "dependencies": ["NumPy abs and where", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "Pairs that are both zero are omitted; an all-zero pair set returns NaN.", "negative_inputs": "Accepted; absolute magnitudes keep each finite contribution in [0,2].", "constant_series": "Equal nonzero constants return zero; unequal constants return their symmetric percentage difference.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The common sMAPE form averages 2|forecast-actual|/(|actual|+|forecast|), usually as a percentage, but published naming and scaling conventions vary.", "references": [{"type": "primary", "title": "The M3-Competition: results, conclusions and implications", "authors_or_organization": "Makridakis and Hibon", "year": 2000, "url_or_doi": "https://doi.org/10.1016/S0169-2070(00)00057-1", "supports": "Uses symmetric absolute percentage error in forecast-comparison practice."}], "known_variants": ["Factors of 100 versus 200 and signed versus absolute denominators occur in the literature.", "Undefined 0/0 pairs may be rejected, assigned zero, or omitted; runtime omits them."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_metrics_not_nan"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "[2,4] versus [1,3] gives 100*((1/1.5)+(1/3.5))/2 = 47.6190476.", "edge_case": "Two all-zero pairs have only omitted 0/0 contributions and return NaN."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime silently omits pairs where prediction and observation are both zero.", "impact": "The effective sample count changes and perfect zero forecasts do not contribute zero error; an all-zero perfect series returns NaN.", "recommended_future_action": "Document the zero-pair policy and exact 0-200 scaling."}]
     },
     "CRPS": {
-      "status": "pending",
+      "status": "complete",
       "name": "Continuous Ranked Probability Score",
-      "method": "continuous_ranked_probability_score"
+      "method": "continuous_ranked_probability_score",
+      "category": "core error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity)", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "mean(|prediction-observation|); deterministic CRPS is delegated exactly to MAE.", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["mean_absolute_error"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "All-zero finite pairs return zero.", "negative_inputs": "Accepted.", "constant_series": "Returns the absolute difference between constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "CRPS is the integral over thresholds of the squared difference between a predictive CDF and the observation step CDF; for a point-mass forecast it equals absolute error.", "references": [{"type": "primary", "title": "Strictly proper scoring rules, prediction, and estimation", "authors_or_organization": "Gneiting and Raftery", "year": 2007, "url_or_doi": "https://doi.org/10.1198/016214506000001437", "supports": "Defines CRPS and its deterministic absolute-error reduction."}], "known_variants": ["Ensemble and parametric-distribution CRPS require forecast-distribution input not represented by this API."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_metrics_not_nan"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "Deterministic forecasts [2,4] versus [1,3] reduce to MAE=(1+1)/2=1.", "edge_case": "Identical all-zero deterministic forecasts return zero."},
+      "findings": [{"type": "documentation-gap", "evidence": "The registered probabilistic name accepts only one scalar prediction per observation and computes MAE.", "impact": "Users cannot evaluate ensemble or distribution forecasts and may infer probabilistic support that is absent.", "recommended_future_action": "Document that this is deterministic point-mass CRPS only."}]
     },
     "TAcc": {
-      "status": "pending",
+      "status": "complete",
       "name": "Trend Accuracy",
-      "method": "trend_accuracy"
+      "method": "trend_accuracy",
+      "category": "trend and direction",
+      "output": {"return_shape": "scalar", "implemented_range": "unbounded signed scalar", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1-|OLS slope(observation on index)-OLS slope(prediction on index)|/(|observation slope|+1e-10).", "preprocessing": ["Drop nonfinite pairs and compress the remaining sample index.", "Fit independent degree-one polynomials against indices 0..N-1."], "dependencies": ["NumPy polyfit"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed and a RuntimeWarning explains index compression.", "zero_inputs_or_denominators": "A fixed 1e-10 stabilizer makes equal flat zero trends return one but nonflat predictions against flat observations extremely negative.", "negative_inputs": "Accepted; only slopes affect the result.", "constant_series": "Equal constants return near/exact one; unequal fitted roundoff can perturb one; a varying prediction against constant observations can be about -1e10.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "No primary source was located for this exact registered name and relative slope-difference formula.", "references": [{"type": "authoritative", "title": "numpy.polyfit documentation", "authors_or_organization": "NumPy developers", "year": 2026, "url_or_doi": "https://numpy.org/doc/stable/reference/generated/numpy.polyfit.html", "supports": "Defines the least-squares polynomial slope calculation used by runtime."}], "known_variants": ["Trend or direction accuracy commonly compares signs of successive changes rather than relative fitted slopes."]},
+      "verification": {"existing_tests": ["tests/test_v2_robustness.py::test_order_sensitive_metrics_warn_when_filtering_compresses_index", "tests/test_error_metrics.py::test_metrics_not_nan"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors", "tests/audit/test_characterization_batch_8.py::test_nonfinite_pairs_are_removed_and_empty_filtered_data_is_rejected"], "ordinary_case": "[2,4] and [1,3] both have fitted slope 2, giving one.", "edge_case": "One remaining pair makes polyfit fail; a nonzero prediction slope divided by a zero observation slope plus 1e-10 produces a huge negative score."},
+      "findings": [{"type": "possible-defect", "evidence": "The 1e-10 stabilizer makes a varying forecast against a flat observation trend return roughly -1e10, and one-point input reaches a low-level polyfit failure.", "impact": "The score is numerically unstable near a zero observed slope and short inputs fail unclearly.", "recommended_future_action": "Define the intended zero-trend and minimum-length policy before a separately approved runtime fix."}, {"type": "documentation-gap", "evidence": "No source for the exact formula was located.", "impact": "Its scientific identity and interpretation are unclear.", "recommended_future_action": "Document the formula as a fitted-slope similarity and source it if possible."}]
     },
     "U2": {
-      "status": "pending",
+      "status": "complete",
       "name": "Theil's Inequality Coefficient",
-      "method": "theils_u2"
+      "method": "theils_u2",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "RMSE(prediction,observation)/sqrt(mean(observation^2)).", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["root_mean_squared_error", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "An all-zero observation RMS returns NaN.", "negative_inputs": "Accepted; squares remove signs from normalization.", "constant_series": "Defined for nonzero constant observations; all-zero observations are undefined.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Theil's U2 normally compares forecast RMSE with a naive no-change forecast RMSE, where one denotes parity with the naive forecast.", "references": [{"type": "primary", "title": "Applied Economic Forecasting", "authors_or_organization": "Henri Theil", "year": 1966, "url_or_doi": "https://archive.org/details/appliedeconomicf0000thei", "supports": "Introduces Theil inequality coefficients for forecast evaluation."}], "known_variants": ["The implemented RMSE divided by observation RMS is commonly associated with a normalized RMSE/Theil U1 component, not the lagged-naive U2 benchmark."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_theils_u2_and_berry_mielke"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "[2,4] versus [1,3] has RMSE 1 and observation RMS sqrt(5), giving 1/sqrt(5).", "edge_case": "All-zero observations have zero RMS and return NaN."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime normalizes by observation RMS rather than by the error of a lagged naive forecast.", "impact": "Zero and one do not carry canonical U2's naive-benchmark interpretation.", "recommended_future_action": "Rename or document the implemented normalized RMSE; change behavior only with compatibility approval."}]
     },
     "BM": {
-      "status": "pending",
+      "status": "complete",
       "name": "Berry-Mielke Index",
-      "method": "berry_mielke_score"
+      "method": "berry_mielke_score",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "unbounded below through 1, or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1-mean(|paired prediction-observation|)/((c/N^2)*sum_ij|prediction_j-observation_i|).", "preprocessing": ["Drop nonfinite pairs.", "Construct the full N by N cross-distance matrix."], "dependencies": ["NumPy subtract.outer", "Bottleneck nanmean"]},
+      "parameters": [{"name": "c", "default": 2.0, "accepted_types": ["Numeric values supporting multiplication and division"], "validation": "None; the scientifically supported default is not enforced.", "invalid_behavior": "Zero makes mu zero and returns NaN; negative values can produce scores above one; incompatible values raise TypeError."}],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "Zero cross-distance mu, including identical constants or c=0, returns NaN.", "negative_inputs": "Accepted because distances are absolute.", "constant_series": "Identical constants return NaN; unequal constants return 1-1/c.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Berry-Mielke agreement compares paired absolute disagreement with expected disagreement from all cross-pairs, using the conventional factor two.", "references": [{"type": "primary", "title": "A generalization of Cohen's kappa agreement measure to interval measurement and multiple raters", "authors_or_organization": "Berry and Mielke", "year": 1988, "url_or_doi": "https://doi.org/10.1177/0013164488484007", "supports": "Develops the interval-scale agreement measure based on observed and expected disagreement."}], "known_variants": ["Distance powers and multi-rater formulations vary; runtime exposes the conventional factor as arbitrary parameter c."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_theils_u2_and_berry_mielke"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_berry_mielke_uses_cross_distance_matrix_and_parameter_c", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "[2,4] versus [1,3] has paired delta 1 and cross-distance sum 6; c=2 gives mu=3 and score 2/3.", "edge_case": "c=0 or identical constant series makes mu zero and returns NaN."},
+      "findings": [{"type": "validation-gap", "evidence": "Any c is accepted even though nonpositive values destroy the agreement-scale interpretation.", "impact": "c=0 returns NaN and negative c can produce scores above one.", "recommended_future_action": "Document c=2 as the scientifically supported setting and consider positive-value validation separately."}]
     },
     "dCor": {
-      "status": "pending",
+      "status": "complete",
       "name": "Distance Correlation",
-      "method": "distance_correlation"
+      "method": "distance_correlation",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, 1] or NaN", "ideal_value": "1 for perfect dependence; 0 for zero sample distance variance"},
+      "implemented_behavior": {"formula": "Biased sample distance correlation from double-centered pairwise Euclidean distance matrices.", "preprocessing": ["Drop nonfinite pairs.", "Build N by N scalar Euclidean distance matrices and double-center each with row and grand means."], "dependencies": ["SciPy pdist and squareform", "NumPy mean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "If either centered distance variance is zero, return zero.", "negative_inputs": "Accepted; Euclidean distances are translation and reflection invariant.", "constant_series": "Returns zero if either series is constant, including two identical constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Distance correlation normalizes distance covariance by the two distance variances and detects general dependence; the empirical biased version uses double-centered pairwise distance matrices.", "references": [{"type": "primary", "title": "Measuring and testing dependence by correlation of distances", "authors_or_organization": "Székely, Rizzo, and Bakirov", "year": 2007, "url_or_doi": "https://doi.org/10.1214/009053607000000505", "supports": "Introduces distance covariance/correlation and empirical distance-matrix computation."}], "known_variants": ["Bias-corrected/U-centered estimators differ at finite sample sizes."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_distance_correlation_metric"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_distance_correlation_matches_biased_double_centered_distance_matrices", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "For [0,1,4] versus [0,1,2], the test independently double-centers both 3x3 distance matrices and reproduces runtime normalization.", "edge_case": "One pair returns NaN by explicit length guard; any constant input at length at least two returns zero."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime uses the biased empirical estimator and returns zero for degenerate constant inputs without identifying the estimator convention.", "impact": "Finite-sample values differ from unbiased variants and zero does not establish independence for a constant variable.", "recommended_future_action": "Document biased double-centering and constant-series semantics."}]
     },
     "lambda": {
-      "status": "pending",
+      "status": "complete",
       "name": "Duveiller Agreement Coefficient",
-      "method": "duveiller_agreement_coefficient"
+      "method": "duveiller_agreement_coefficient",
+      "category": "correlation and agreement",
+      "output": {"return_shape": "scalar", "implemented_range": "nominally [-1, 1] with runtime roundoff possible", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1-MSE/(population variance(observation)+population variance(prediction)+(mean(observation)-mean(prediction))^2).", "preprocessing": ["Drop nonfinite pairs."], "dependencies": ["Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "If the entire denominator is exactly zero, return one.", "negative_inputs": "Accepted; common translation and sign reversal preserve agreement.", "constant_series": "Equal constants return one; unequal constants return zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Duveiller's corrected symmetric lambda adds a nonnegative-covariance correction kappa to the variance-and-bias denominator, making lambda equal CCC for nonnegative covariance and zero rather than negative for negative covariance.", "references": [{"type": "primary", "title": "Revisiting the concept of a symmetric index of agreement for continuous datasets", "authors_or_organization": "Duveiller, Fasbender, and Meroni", "year": 2016, "url_or_doi": "https://doi.org/10.1038/srep19401", "supports": "Defines the symmetric lambda agreement coefficient including the negative-covariance correction."}, {"type": "primary", "title": "Author Correction: Revisiting the concept of a symmetric index of agreement for continuous datasets", "authors_or_organization": "Duveiller, Fasbender, and Meroni", "year": 2022, "url_or_doi": "https://doi.org/10.1038/s41598-022-23771-z", "supports": "Corrects the published kappa equation and confirms that kappa is not divided by sample size."}], "known_variants": ["Runtime omits kappa and is algebraically Lin's CCC when its denominator is nonzero."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_duveiller_agreement_coefficient"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_duveiller_coefficient_uses_population_variances_and_bias", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "[1,3,5] versus [2,3,4] has MSE 2/3, variance sum 10/3, zero bias, and lambda 0.8.", "edge_case": "Perfect negative association [1,2,3] versus [3,2,1] returns -1 rather than corrected lambda zero; identical constants return one."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime omits Duveiller's kappa correction and therefore equals CCC; perfect negative association returns -1 while corrected lambda is zero.", "impact": "Negative-covariance datasets leave canonical lambda's [0,1] range and have a different interpretation.", "recommended_future_action": "Document the CCC-like runtime formula and consider the corrected coefficient only as a separately approved compatibility change."}]
     },
     "iqRMSE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Inter-Quartile RMSE",
-      "method": "interquartile_rmse"
+      "method": "interquartile_rmse",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity]", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "RMSE/(75th percentile(observation)-25th percentile(observation)).", "preprocessing": ["Drop nonfinite pairs.", "Use NumPy's default linear percentile interpolation."], "dependencies": ["root_mean_squared_error", "NumPy percentile"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "A zero observation IQR returns positive infinity even when RMSE is zero.", "negative_inputs": "Accepted; IQR is translation invariant and nonnegative.", "constant_series": "Always returns infinity for constant observations, including perfect constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "iqRMSE normalizes root mean squared error by the observed interquartile range to provide a robust scale-relative error.", "references": [{"type": "primary", "title": "The power of machine learning to predict crop yields and nitrogen losses", "authors_or_organization": "Correndo and coauthors", "year": 2021, "url_or_doi": "https://doi.org/10.1016/j.agsy.2021.103194", "supports": "Reports interquartile-range-normalized RMSE among model evaluation metrics."}], "known_variants": ["Quantile interpolation conventions differ for small samples.", "Undefined zero-IQR cases may return NaN rather than infinity."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_interquartile_rmse"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_percentage_probabilistic_trend_and_scale_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_8.py::test_zero_short_constant_and_regression_failure_behaviors"], "ordinary_case": "For [2,4] versus [1,3], RMSE is 1 and NumPy's two-point IQR is 1, giving one.", "edge_case": "Constant observations have IQR zero and return infinity, including a perfect all-zero forecast."},
+      "findings": [{"type": "possible-defect", "evidence": "Runtime returns infinity for 0/0 when both RMSE and observed IQR are zero.", "impact": "A perfect constant forecast is reported as infinitely bad rather than undefined or perfect.", "recommended_future_action": "Specify zero-IQR semantics before any separately approved runtime change."}]
     },
     "SMA": {
-      "status": "pending",
+      "status": "complete",
       "name": "SMA Regression Metrics",
-      "method": "sma_metrics"
+      "method": "sma_metrics",
+      "category": "diagnostic and decomposition",
+      "output": {"return_shape": "7-tuple (slope, intercept, MSE, MLA, MLP, PLA%, PLP%)", "implemented_range": "mixed signed/nonnegative components; NaNs possible", "ideal_value": "(1, 0, 0, 0, 0, 0, 0) for a perfect nonconstant fit"},
+      "implemented_behavior": {"formula": "slope=sign(r)*population SD(prediction)/population SD(observation); intercept=mean(prediction)-slope*mean(observation); MLA=(mean difference)^2+(SD difference)^2; MLP=2*SDpred*SDobs*(1-r); percentages divide each component by MSE.", "preprocessing": ["Drop nonfinite pairs.", "Replace NaN Pearson correlation with zero.", "Replace zero observation SD slope with zero."], "dependencies": ["correlation_coefficient", "Bottleneck nanmean and nanstd"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed; NaN correlation is replaced by zero, though underlying calculation may warn.", "zero_inputs_or_denominators": "Perfect zero data return seven zeros, including slope zero rather than one.", "negative_inputs": "Accepted; correlation sign controls slope sign.", "constant_series": "Constant observations force slope zero; constant-series correlation becomes zero; component percentages can remain finite.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Standardized major axis regression uses the sign of correlation times the response-to-predictor standard-deviation ratio; the reported MLA/MLP decomposition separates accuracy and precision contributions to MSE.", "references": [{"type": "primary", "title": "The power of machine learning to predict crop yields and nitrogen losses", "authors_or_organization": "Correndo and coauthors", "year": 2021, "url_or_doi": "https://doi.org/10.1016/j.agsy.2021.103194", "supports": "Uses SMA-based accuracy/precision decomposition for model evaluation."}], "known_variants": ["Regression orientation determines which standard-deviation ratio is the slope; runtime models prediction as a function of observation."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_sma_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_sma_tuple_order_and_component_meanings_are_executable", "tests/audit/test_characterization_batch_8.py::test_constant_regression_and_rnp_components_preserve_runtime_nans"], "ordinary_case": "[1,3,5] versus [2,3,4] returns (2,-3,2/3,2/3,0,100,0), and MLA+MLP=MSE.", "edge_case": "Constant predictions 2 versus constant observations 1 return (0,2,1,1,0,100,0) after replacing undefined correlation with zero."},
+      "findings": [{"type": "documentation-gap", "evidence": "Seven positional components, regression orientation, population SD convention, and NaN-correlation replacement are not exposed by the registry description.", "impact": "Callers can transpose slope orientation or tuple meanings and miss constant-series substitution.", "recommended_future_action": "Document tuple order and degeneracy policy prominently."}]
     },
     "RNP": {
-      "status": "pending",
+      "status": "complete",
       "name": "Non-parametric KGE",
-      "method": "rnp"
+      "method": "rnp",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "4-tuple (RNP, Spearman r, FDC alpha, mean-ratio beta)", "implemented_range": "score unbounded below through 1; components may be NaN", "ideal_value": "(1, 1, 1, 1)"},
+      "implemented_behavior": {"formula": "alpha=1-0.5*sum(|sort(pred/(mean(pred)*N))-sort(obs/(mean(obs)*N))|); beta=mean(pred)/mean(obs); r=Spearman(pred,obs); RNP=1-Euclidean distance of (alpha,beta,r) from (1,1,1).", "preprocessing": ["Drop nonfinite pairs.", "Sort separately normalized flow-duration vectors for alpha while retaining original pairing for Spearman correlation."], "dependencies": ["SciPy spearmanr", "Bottleneck nanmean and nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "A zero mean makes its normalized FDC and beta undefined; nansum can still make alpha equal one.", "negative_inputs": "Accepted algebraically, though zero/canceling means remain singular.", "constant_series": "Spearman r and overall RNP are NaN; alpha can be one and beta finite.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Non-parametric KGE combines Spearman rank correlation, normalized flow-duration-curve similarity, and mean-flow bias in Euclidean component space.", "references": [{"type": "primary", "title": "A simple and objective method for selecting rainfall-runoff model evaluation criteria", "authors_or_organization": "Pool, Vis, Knight, and Seibert", "year": 2018, "url_or_doi": "https://doi.org/10.1080/02626667.2018.1552002", "supports": "Defines the non-parametric KGE components based on Spearman correlation, flow-duration curves, and bias."}], "known_variants": ["Component labels and ordering differ across software; runtime returns score, r, alpha, beta."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_8.py::test_rnp_tuple_order_and_flow_duration_component_match_hand_calculation", "tests/audit/test_characterization_batch_8.py::test_constant_regression_and_rnp_components_preserve_runtime_nans"], "ordinary_case": "[2,4] versus [1,3] returns r=1, alpha=11/12, beta=3/2, then score 1-sqrt((alpha-1)^2+(beta-1)^2).", "edge_case": "Unequal positive constants produce alpha one and finite beta but Spearman r and the overall score are NaN."},
+      "findings": [{"type": "test-gap", "evidence": "No pre-audit test directly exercised RNP or its four-component tuple.", "impact": "Component order, normalized FDC arithmetic, and degeneracies could regress unnoticed.", "recommended_future_action": "Retain the characterization tests and document tuple component order."}, {"type": "validation-gap", "evidence": "Zero-mean normalization yields NaNs that nansum can convert into alpha=1 while beta and the score remain NaN.", "impact": "The component tuple mixes a misleading perfect alpha with undefined components.", "recommended_future_action": "Document positive nonzero-mean domain and define validation separately."}]
     },
     "TSS": {
       "status": "pending",

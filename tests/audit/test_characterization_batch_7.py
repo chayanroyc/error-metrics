@@ -15,9 +15,9 @@ BATCH = ("RNMBF", "CPI", "RED", "FoM", "MSDdec", "SS", "AD", "KLD", "MPE", "MAPE
 def test_batch_7_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
     completed = [key for key, record in inventory["metrics"].items() if record["status"] == "complete"]
-    assert completed[-len(BATCH):] == list(BATCH)
-    assert len(completed) == 70
-    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) == 19
+    assert completed[60:70] == list(BATCH)
+    assert len(completed) >= 70
+    assert sum(record["status"] == "pending" for record in inventory["metrics"].values()) <= 19
 
 
 def test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations():

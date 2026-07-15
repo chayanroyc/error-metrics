@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 70
-- Pending: 19
+- Completed: 80
+- Pending: 9
 
 ## bias
 
@@ -33,6 +33,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `ME` | Max Error | `max_error` | complete |
 | `RMSD` | Root Mean Square Difference | `root_mean_square_difference` | complete |
 | `RSE` | Residual Standard Error | `residual_standard_error` | complete |
+| `CRPS` | Continuous Ranked Probability Score | `continuous_ranked_probability_score` | complete |
 
 ## correlation and agreement
 
@@ -44,6 +45,9 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `LCCC` | Lin's Concordance Correlation | `lccc` | complete |
 | `CI` | Confidence Index | `confidence_index` | complete |
 | `SBF` | Slope of Best-Fit Line | `slope_of_best_fit_line` | complete |
+| `BM` | Berry-Mielke Index | `berry_mielke_score` | complete |
+| `dCor` | Distance Correlation | `distance_correlation` | complete |
+| `lambda` | Duveiller Agreement Coefficient | `duveiller_agreement_coefficient` | complete |
 
 ## efficiency and environmental evaluation
 
@@ -66,6 +70,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `LCE` | Legates Coefficient of Efficiency | `legates_coefficient_of_efficiency` | complete |
 | `CPI` | Combined Performance Index | `cpi` | complete |
 | `SS` | Skill Score vs Climatology | `skill_score_against_climatology` | complete |
+| `RNP` | Non-parametric KGE | `rnp` | complete |
 
 ## normalized and relative error
 
@@ -86,6 +91,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `U95` | Uncertainty at 95% | `uncertainty_95` | complete |
 | `RAE` | Relative Absolute Error | `relative_absolute_error` | complete |
 | `RED` | Relative Euclidean Distance | `red` | complete |
+| `U2` | Theil's Inequality Coefficient | `theils_u2` | complete |
+| `iqRMSE` | Inter-Quartile RMSE | `interquartile_rmse` | complete |
 
 ## percentage error
 
@@ -95,6 +102,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `FAC2` | Factor of Observations 2 | `factor_of_observations2` | complete |
 | `MPE` | Mean Percentage Error | `mean_percentage_error` | complete |
 | `MAPE` | Mean Absolute Percentage Error | `mean_absolute_percentage_error` | complete |
+| `sMAPE` | Symmetric Mean Absolute Percentage Error | `symmetric_mean_absolute_percentage_error` | complete |
 
 ## distribution and statistical comparison
 
@@ -117,21 +125,18 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `MSDdec` | MSD Decomposition | `msd_decomposition` | complete |
+| `SMA` | SMA Regression Metrics | `sma_metrics` | complete |
+
+## trend and direction
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `TAcc` | Trend Accuracy | `trend_accuracy` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `sMAPE` | Symmetric Mean Absolute Percentage Error | `symmetric_mean_absolute_percentage_error` | pending |
-| `CRPS` | Continuous Ranked Probability Score | `continuous_ranked_probability_score` | pending |
-| `TAcc` | Trend Accuracy | `trend_accuracy` | pending |
-| `U2` | Theil's Inequality Coefficient | `theils_u2` | pending |
-| `BM` | Berry-Mielke Index | `berry_mielke_score` | pending |
-| `dCor` | Distance Correlation | `distance_correlation` | pending |
-| `lambda` | Duveiller Agreement Coefficient | `duveiller_agreement_coefficient` | pending |
-| `iqRMSE` | Inter-Quartile RMSE | `interquartile_rmse` | pending |
-| `SMA` | SMA Regression Metrics | `sma_metrics` | pending |
-| `RNP` | Non-parametric KGE | `rnp` | pending |
 | `TSS` | Taylor Skill Score | `taylor_skill_score` | pending |
 | `MEAN` | Mean Values | `meann` | pending |
 | `MEDIAN` | Median Values | `mediann` | pending |

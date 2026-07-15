@@ -48,7 +48,8 @@ the same DE identity. Division by FDC
 observations requires positive/nonzero flow; the paper explicitly says its
 dynamic-error construction limits applicability to perennial streamflow.
 Constant time series make (r) undefined. A useful component tuple is
-`(DE or DE_prime, r, abs_B_area, mean_B_rel)`, with the score convention explicit.
+`(canonical_DE or runtime_1_minus_DE, r, abs_B_area, mean_B_rel)`, with the
+implementation-specific score transformation explicit.
 
 ### `LME`
 
@@ -163,8 +164,9 @@ so it is invariant to time ordering and does not diagnose paired timing error.
 
 ## Audit-critical source mismatches to verify
 
-1. `DE`: the original paper's metric is a distance with optimum 0; `1 - distance`
-   is a normalized DE′ convention.
+1. `DE`: the original paper's metric is a distance with optimum 0; runtime's
+   `1 - distance` is an implementation-specific transformation with no primary
+   source established for retaining the DE identity.
 2. `WIAr`: the poor-performance branch must be `B / A - 1`, not `1 - B / A`.
 3. `LCEf`: Lee and Choi name their metric LCE; `LCEf` is local disambiguation.
 4. `KGE2012`: its variability component is a CV ratio (usually (\gamma)), not

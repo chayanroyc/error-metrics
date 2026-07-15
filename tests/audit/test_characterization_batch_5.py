@@ -106,6 +106,14 @@ def test_ksi_integrates_only_over_unique_sample_grid():
     assert tied.ksi(normed=False) == pytest.approx(2 / 3)
 
 
+def test_ksi_distinct_constants_and_truthy_non_boolean_normed():
+    metrics = ErrorMetrics([1.0, 1.0, 1.0], [2.0, 2.0, 2.0])
+    assert metrics.ksi(normed=False) == pytest.approx(1)
+    expected_normalized = 100 * np.sqrt(3) / 1.63
+    assert metrics.ksi() == pytest.approx(expected_normalized)
+    assert metrics.ksi(normed="normalized") == pytest.approx(expected_normalized)
+
+
 def test_nonfinite_pairs_are_removed_and_empty_filtered_data_is_rejected():
     filtered = ErrorMetrics([2.0, np.nan, 4.0, 6.0, np.inf], [1.0, 9.0, 3.0, 5.0, 8.0])
     direct = ErrorMetrics([2.0, 4.0, 6.0], [1.0, 3.0, 5.0])

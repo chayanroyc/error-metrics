@@ -10,7 +10,7 @@ orientation, matching the library.
 
 | Metric | Original source | Definition and audit implications |
 |---|---|---|
-| `KGE` | Gupta, Kling, Yilmaz, and Martinez (2009), *Decomposition of the mean squared error and NSE performance criteria*, [doi:10.1016/j.jhydrol.2009.08.003](https://doi.org/10.1016/j.jhydrol.2009.08.003) | (1-\sqrt{(r-1)^2+(\alpha-1)^2+(\beta-1)^2}), with **variability ratio** (\alpha=s_P/s_O), **bias ratio** (\beta=\bar P/\bar O), and correlation (r). Thus constant (O) makes (\alpha) undefined; either constant series makes (r) undefined; zero (\bar O) makes (\beta) undefined/infinite. The natural component return is `(score, r, alpha, beta)`. |
+| `KGE` | Gupta, Kling, Yilmaz, and Martinez (2009), *Decomposition of the mean squared error and NSE performance criteria: Implications for improving hydrological modelling*, [doi:10.1016/j.jhydrol.2009.08.003](https://doi.org/10.1016/j.jhydrol.2009.08.003) | (1-\sqrt{(r-1)^2+(\alpha-1)^2+(\beta-1)^2}), with **variability ratio** (\alpha=s_P/s_O), **bias ratio** (\beta=\bar P/\bar O), and correlation (r). Thus constant (O) makes (\alpha) undefined; either constant series makes (r) undefined; zero (\bar O) makes (\beta) undefined/infinite. The natural component return is `(score, r, alpha, beta)`. |
 | `KGE2012` (KGE′) | Kling, Fuchs, and Paulin (2012), *Runoff conditions in the upper Danube basin under an ensemble of climate change scenarios*, [doi:10.1016/j.jhydrol.2012.01.011](https://doi.org/10.1016/j.jhydrol.2012.01.011) | Same Euclidean form, but the variability component is **CV ratio** (\gamma=CV_P/CV_O=(s_P/\bar P)/(s_O/\bar O)), while (\beta=\bar P/\bar O). This must not be described as the original KGE (\alpha=s_P/s_O). Zero in either mean can make the CV term undefined even where original KGE's variability ratio is defined. The library calls this component `alpha`, but semantically it is the paper's (\gamma). |
 | `KGEdp` (KGE″) | Tang, Clark, and Papalexiou (2021), *SC-Earth: A Station-Based Serially Complete Earth Dataset from 1950 to 2019*, [doi:10.1175/JCLI-D-21-0067.1](https://doi.org/10.1175/JCLI-D-21-0067.1) | (1-\sqrt{(r-1)^2+(\alpha-1)^2+\beta_n^2}), with (\alpha=s_P/s_O) and **normalized additive bias** (\beta_n=(\bar P-\bar O)/s_O), whose ideal is 0 (not 1). This avoids division by a near-zero observed mean, but not by zero observed standard deviation; constant series also destroy (r). Return `(score, r, alpha, beta_n)` and document the different ideal for the final component. |
 
@@ -41,9 +41,10 @@ sorted flow-duration curves, (\bar B_{rel}) is constant error,
 |B_{area}|=\int_0^1 |B_{res}(i)|\,di.
 \]
 
-The paper's optimum is **0**, not 1. A later normalized variant is sometimes
-written (DE'=1-DE), but it must be named as such. Therefore an implementation
-returning `1 - sqrt(...)` is DE′ rather than the source's DE. Division by FDC
+The paper's optimum is **0**, not 1, and its error distance is unbounded above.
+The runtime's `1 - sqrt(...)` is an implementation-specific transformation;
+this audit found no primary support for publishing that transformed score under
+the same DE identity. Division by FDC
 observations requires positive/nonzero flow; the paper explicitly says its
 dynamic-error construction limits applicability to perennial streamflow.
 Constant time series make (r) undefined. A useful component tuple is
@@ -151,6 +152,10 @@ grid `unique(concatenate(O, P))`, especially with ties.
 
 Raw KSI has the units and scale of the evaluated variable. Normalized KSI is
 undefined when the combined range is zero because its critical area is zero.
+Two distinct constants have raw KSI equal to their separation and a finite
+normalized score because their pooled range is nonzero. The runtime does not
+validate `normed` as Boolean: any truthy value, including a nonempty string,
+selects normalized output, while a falsey value selects raw output.
 The usual large-sample hypothesis-test interpretation is stated for (N\ge35);
 outside that setting it remains a distribution-distance score, not evidence of
 a passed/failed KS hypothesis test. KSI compares marginal distributions only,

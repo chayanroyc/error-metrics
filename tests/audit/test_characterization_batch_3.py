@@ -64,6 +64,27 @@ def test_fractional_metrics_distinguish_zero_pair_and_negative_policies():
         negative.mean_fractional_error()
 
 
+def test_fb_and_fae_retain_nonzero_cancellation_infinities():
+    positive = ErrorMetrics([1.0], [-1.0])
+    negative = ErrorMetrics([-1.0], [1.0])
+    mixed = ErrorMetrics([1.0, 2.0], [-1.0, 1.0])
+    with np.errstate(all="ignore"):
+        assert np.isposinf(positive.fb())
+        assert np.isneginf(negative.fb())
+        assert np.isposinf(positive.fae())
+        assert np.isposinf(negative.fae())
+        assert np.isposinf(mixed.fb())
+        assert np.isposinf(mixed.fae())
+
+    inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
+    test_id = (
+        "tests/audit/test_characterization_batch_3.py::"
+        "test_fb_and_fae_retain_nonzero_cancellation_infinities"
+    )
+    for abbreviation in ("FB", "FAE"):
+        assert test_id in inventory["metrics"][abbreviation]["verification"]["characterization_tests"]
+
+
 def test_observation_normalized_metrics_omit_zeros_and_accept_negative_denominators():
     mixed = ErrorMetrics([5.0, -1.0, 2.0], [0.0, -2.0, 1.0])
     assert mixed.mean_normalized_absolute_error() == pytest.approx(0.25)

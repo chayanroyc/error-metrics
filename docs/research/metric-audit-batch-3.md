@@ -22,13 +22,16 @@ their metric-specific zero, sign, and positivity rules.
 
 ### MNAE — mean normalized absolute error
 
-- **Definition ambiguity.** “Normalized absolute error” has no unique
-  denominator across disciplines. The repository's expression is the
-  observation-normalized absolute percentage-error fraction,
+- **Definition ambiguity.** No primary or authoritative source was identified
+  that establishes a unique cross-disciplinary definition for the exact name
+  “mean normalized absolute error.” Its canonical definition is therefore
+  recorded as unknown rather than inferred from a nearby metric. The
+  repository's expression is the observation-normalized
+  absolute-percentage-error fraction,
   \(n^{-1}\sum_i |p_i-o_i|/o_i\), except that it is not multiplied by 100.
-  Maintained scikit-learn documentation defines the closely corresponding
-  MAPE with an *absolute* target denominator and reports a relative value, not
-  percent units
+  For comparison only, maintained scikit-learn documentation defines MAPE with
+  an *absolute* target denominator and reports a relative value, not percent
+  units; that documentation does not establish an MNAE definition
   ([scikit-learn maintainers, `mean_absolute_percentage_error`](https://scikit-learn.org/stable/modules/generated/sklearn.metrics.mean_absolute_percentage_error.html)).
 - **Implemented behavior.** Zero-observation pairs are replaced by NaN and
   omitted. The denominator is `observations`, not `abs(observations)`, so a
@@ -55,10 +58,11 @@ their metric-specific zero, sign, and positivity rules.
 - **Implemented behavior.** The method instead computes the mean of pointwise
   fractions, \(n^{-1}\sum_i2(p_i-o_i)/(p_i+o_i)\), with the opposite
   prediction-minus-observation sign. Thus it is algebraically the commonly
-  named `MFB`/modified normalized mean bias, not ratio-of-means FB. A `0/0`
-  pair contributes NaN to `nanmean` and is omitted; a nonzero pair summing to
-  zero produces an infinity that is not removed. Negative data destroy the
-  usual `[-2,2]` bound.
+  named `MFB`/modified normalized mean bias, not ratio-of-means FB. Only a
+  `0/0` pair such as `(0,0)` contributes NaN to `nanmean` and is omitted. A
+  nonzero cancellation pair produces signed infinity (`(1,-1)` positive and
+  `(-1,1)` negative), which is retained both alone and alongside finite terms.
+  Negative data destroy the usual `[-2,2]` bound.
 - **Audit implication.** This is a definition-variant and sign mismatch against
   the cited FB convention. Exact positive-data agreement is 0, but the generic
   FB label does not accurately distinguish the implemented pointwise average.
@@ -76,9 +80,10 @@ their metric-specific zero, sign, and positivity rules.
   2006](https://doi.org/10.1016/j.atmosenv.2005.09.087)).
 - **Implemented behavior.** `FAE` computes that pointwise expression without
   enforcing nonnegative inputs. For nonnegative data, a `0/0` pair becomes NaN
-  and is omitted. With negative inputs, denominators can be negative or zero,
-  so the result can be negative or infinite rather than an absolute-error
-  magnitude.
+  and is omitted. With negative inputs, denominators can be negative or zero:
+  finite results can be negative, while either orientation of a nonzero
+  cancellation pair produces positive infinity that remains in isolated and
+  mixed means.
 - **Audit implication.** On nonnegative concentration data it has ideal 0 and
   range `[0,2]`, subject to this implementation's omission of zero-zero pairs.
   It is numerically the same formula as repository `MFE` away from zero-zero

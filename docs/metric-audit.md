@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 60
-- Pending: 29
+- Completed: 70
+- Pending: 19
 
 ## bias
 
@@ -21,6 +21,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MBF` | Mean Bias Factor | `mean_bias_factor` | complete |
 | `RMBF` | Relative Mean Bias Factor | `relative_mean_bias_factor` | complete |
 | `NMBF` | Normalized Mean Bias Factor | `nmbf` | complete |
+| `RNMBF` | Relative Normalized Mean Bias Factor | `rnmbf` | complete |
 
 ## core error
 
@@ -63,6 +64,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `WIA` | Willmott's Index of Agreement | `willmotts_index_of_agreement` | complete |
 | `WIAr` | Refined Index of Agreement | `refined_index_of_agreement` | complete |
 | `LCE` | Legates Coefficient of Efficiency | `legates_coefficient_of_efficiency` | complete |
+| `CPI` | Combined Performance Index | `cpi` | complete |
+| `SS` | Skill Score vs Climatology | `skill_score_against_climatology` | complete |
 
 ## normalized and relative error
 
@@ -82,6 +85,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `SD` | Standard Deviation of Residual | `standard_deviation_of_residual` | complete |
 | `U95` | Uncertainty at 95% | `uncertainty_95` | complete |
 | `RAE` | Relative Absolute Error | `relative_absolute_error` | complete |
+| `RED` | Relative Euclidean Distance | `red` | complete |
 
 ## percentage error
 
@@ -89,6 +93,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | --- | --- | --- | --- |
 | `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | complete |
 | `FAC2` | Factor of Observations 2 | `factor_of_observations2` | complete |
+| `MPE` | Mean Percentage Error | `mean_percentage_error` | complete |
+| `MAPE` | Mean Absolute Percentage Error | `mean_absolute_percentage_error` | complete |
 
 ## distribution and statistical comparison
 
@@ -102,21 +108,20 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `STD` | Standard Deviation | `STD` | complete |
 | `nESkew` | Normalized Error Skewness | `normalized_error_skewness` | complete |
 | `nEKurt` | Normalized Error Kurtosis | `normalized_error_kurtosis` | complete |
+| `FoM` | Figure of Merit | `figure_of_merit` | complete |
+| `AD` | Anderson-Darling Distance | `anderson_darling_distance` | complete |
+| `KLD` | Kullback-Leibler Divergence | `kullback_leibler_divergence` | complete |
+
+## diagnostic and decomposition
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `MSDdec` | MSD Decomposition | `msd_decomposition` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `RNMBF` | Relative Normalized Mean Bias Factor | `rnmbf` | pending |
-| `CPI` | Combined Performance Index | `cpi` | pending |
-| `RED` | Relative Euclidean Distance | `red` | pending |
-| `FoM` | Figure of Merit | `figure_of_merit` | pending |
-| `MSDdec` | MSD Decomposition | `msd_decomposition` | pending |
-| `SS` | Skill Score vs Climatology | `skill_score_against_climatology` | pending |
-| `AD` | Anderson-Darling Distance | `anderson_darling_distance` | pending |
-| `KLD` | Kullback-Leibler Divergence | `kullback_leibler_divergence` | pending |
-| `MPE` | Mean Percentage Error | `mean_percentage_error` | pending |
-| `MAPE` | Mean Absolute Percentage Error | `mean_absolute_percentage_error` | pending |
 | `sMAPE` | Symmetric Mean Absolute Percentage Error | `symmetric_mean_absolute_percentage_error` | pending |
 | `CRPS` | Continuous Ranked Probability Score | `continuous_ranked_probability_score` | pending |
 | `TAcc` | Trend Accuracy | `trend_accuracy` | pending |

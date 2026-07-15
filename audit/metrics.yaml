@@ -782,54 +782,134 @@
       "findings": [{"type": "duplicate-or-overlap", "evidence": "For positive means NMBF and MBF execute the same mean ratio; they differ only because MBF validates positive means.", "impact": "Two registry identities return identical ordinary-domain values but advertise different domain behavior.", "recommended_future_action": "Cross-reference the overlap and domain distinction."}, {"type": "possible-defect", "evidence": "Runtime NMBF returns a raw ratio with ideal one; Yu et al. define a piecewise symmetric factor bias with ideal zero.", "impact": "Runtime values, ideal, symmetry, and domain handling differ from the named primary-source metric.", "recommended_future_action": "Confirm intent before restoring the canonical piecewise formula or renaming in a separately approved runtime change."}]
     },
     "RNMBF": {
-      "status": "pending",
+      "status": "complete",
       "name": "Relative Normalized Mean Bias Factor",
-      "method": "rnmbf"
+      "method": "rnmbf",
+      "category": "bias",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "abs(mean(predictions)/mean(observations)-1).", "preprocessing": ["Convert, flatten, and drop nonfinite pairs.", "Delegate zero-denominator handling to NMBF."], "dependencies": ["nmbf", "NumPy abs"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed before means.", "zero_inputs_or_denominators": "Zero observation mean returns NaN through NMBF.", "negative_inputs": "Accepted without sign-domain validation.", "constant_series": "Returns absolute ratio distance from one unless observation is zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Runtime defines RNMBF locally as absolute distance of its raw mean ratio from unity; no independent canonical source was established for this exact name.", "references": [{"type": "authoritative", "title": "ErrorMetrics public API and source", "authors_or_organization": "error-metrics maintainers", "year": 2026, "url_or_doi": "https://github.com/chayandatta/error-metrics", "supports": "Owns the RNMBF identity and local transformation."}], "known_variants": ["Canonical Yu NMBF is piecewise symmetric with ideal zero, so applying this transformation to it would have a different meaning."]},
+      "verification": {"existing_tests": ["tests/test_v2_robustness.py::test_duplicate_abbreviations_use_documented_scalar_methods"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations"], "ordinary_case": "Prediction mean 4 and observation mean 2 give raw NMBF 2 and RNMBF 1.", "edge_case": "Zero observation mean returns NaN."},
+      "findings": [{"type": "duplicate-or-overlap", "evidence": "RNMBF is exactly abs(NMBF-1), while runtime NMBF is the unrestricted raw mean ratio.", "impact": "It overlaps RMBF on positive means but inherits a different domain policy.", "recommended_future_action": "Cross-reference RNMBF, RMBF, and NMBF and document their domain distinction."}]
     },
     "CPI": {
-      "status": "pending",
+      "status": "complete",
       "name": "Combined Performance Index",
-      "method": "cpi"
+      "method": "cpi",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) for finite ordinary inputs", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "(KSI(normed=False)+OVER(normed=False)+2*RMSE)/4.", "preprocessing": ["Convert, flatten, and drop nonfinite pairs.", "Evaluate KSI and OVER on the pooled empirical-CDF grid."], "dependencies": ["ksi(normed=False)", "over_metric(normed=False)", "root_mean_squared_error"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "Unnormalized dependencies avoid their normalization denominators; all-zero identical series return zero.", "negative_inputs": "Accepted, but the component sum is scale- and unit-dependent.", "constant_series": "Identical constants return zero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Published solar-resource CPI combines normalized-percentage KSI, OVER, and twice relative RMSD with weights 1:1:2.", "references": [{"type": "primary", "title": "Site-adaptation of modeled solar radiation: Quality assessment and global performance index", "authors_or_organization": "Fernández-Peruchena and coauthors", "year": 2020, "url_or_doi": "https://doi.org/10.3390/rs12132127", "supports": "Defines CPI=(KSI+OVER+2 relRMSD)/4 with normalized components."}], "known_variants": ["Runtime preserves the weights but uses raw unit-bearing KSI, OVER, and RMSE."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_cpi_is_unscaled_average_of_ksi_over_and_double_rmse"], "ordinary_case": "Stubbed KSI=2, OVER=4, RMSE=3 yields CPI=(2+4+6)/4=3 and proves both distribution components receive normed=False.", "edge_case": "Identical all-zero series yield zero because all three unnormalized dependencies are zero."},
+      "findings": [{"type": "definition-variant", "evidence": "Published CPI uses normalized KSI/OVER and relative RMSD; runtime explicitly requests raw KSI/OVER and raw RMSE.", "impact": "Runtime CPI has data units and is not comparable to the published percentage index.", "recommended_future_action": "Document the raw-unit variant and dependency settings before considering any separately approved change."}]
     },
     "RED": {
-      "status": "pending",
+      "status": "complete",
       "name": "Relative Euclidean Distance",
-      "method": "red"
+      "method": "red",
+      "category": "normalized and relative error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sqrt(mean(((prediction-observation)/observation)^2)) over nonzero observations.", "preprocessing": ["Drop nonfinite pairs.", "Replace zero observations with NaN before Bottleneck nanmean."], "dependencies": ["Bottleneck nanmean", "NumPy sqrt"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Input nonfinite pairs and zero-observation ratios are omitted.", "zero_inputs_or_denominators": "Zero-observation pairs are omitted; all-zero observations return NaN.", "negative_inputs": "Accepted; squaring removes ratio sign.", "constant_series": "Finite for a nonzero observation constant; zero observations return NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Published forecast-evaluation RED combines relative discrepancies in mean, standard deviation, and correlation in quadrature.", "references": [{"type": "authoritative", "title": "Solar Forecast Arbiter metric documentation", "authors_or_organization": "Electric Power Research Institute", "year": 2026, "url_or_doi": "https://forecastarbiter.epri.com/metrics/", "supports": "Defines RED from mean bias, spread difference, and correlation components."}], "known_variants": ["Runtime instead computes RMS pointwise relative error."]},
+      "verification": {"existing_tests": [], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_7.py::test_zero_observations_are_omitted_from_red_mpe_and_mape"], "ordinary_case": "[2,6] versus [1,3] has two relative errors of one and RED 1.", "edge_case": "With one zero observation that pair is omitted; if all observations are zero RED is NaN."},
+      "findings": [{"type": "definition-variant", "evidence": "Runtime averages squared pointwise relative errors, whereas the standard relative Euclidean norm ratio weights by reference magnitude.", "impact": "The two formulas differ whenever observation magnitudes vary.", "recommended_future_action": "Document the exact RMS-relative formula or rename before any runtime change."}]
     },
     "FoM": {
-      "status": "pending",
+      "status": "complete",
       "name": "Figure of Merit",
-      "method": "figure_of_merit"
+      "method": "figure_of_merit",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "scalar", "implemented_range": "nominally [0, 100] for nonnegative inputs; otherwise unbounded or NaN", "ideal_value": "100"},
+      "implemented_behavior": {"formula": "100*sum(min(observation,prediction))/sum(max(observation,prediction)).", "preprocessing": ["Drop nonfinite pairs.", "Compute elementwise overlap, false-negative, and false-positive areas."], "dependencies": ["NumPy minimum and maximum", "Bottleneck nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "All-zero inputs produce NaN.", "negative_inputs": "Accepted but violate the area interpretation and can leave the nominal range.", "constant_series": "Positive constants return the smaller/larger ratio times 100.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "For nonnegative spatial fields, figure of merit in space is intersection area divided by union area, commonly expressed as a percentage.", "references": [{"type": "primary", "title": "Use of two-dimensional measures of effectiveness for the evaluation of regional-scale models", "authors_or_organization": "Warner and coauthors", "year": 2004, "url_or_doi": "https://doi.org/10.1175/1520-0450(2004)043%3C0058:UOTDMO%3E2.0.CO;2", "supports": "Defines intersection-over-union Figure of Merit in Space and discusses concentration-weighted generalization."}], "known_variants": ["Binary-set overlap and continuous nonnegative min/max overlap are distinct variants."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_additional_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations"], "ordinary_case": "[1,1,4] versus [1,3,2] has min sum 4 and max sum 8, giving 50 percent.", "edge_case": "All-zero fields have a zero union and return NaN."},
+      "findings": [{"type": "validation-gap", "evidence": "Negative values are accepted although the min/max overlap is only bounded and area-like for nonnegative fields.", "impact": "FoM may be outside 0-100 or misleading for signed data.", "recommended_future_action": "Document the nonnegative domain and consider separate validation approval."}]
     },
     "MSDdec": {
-      "status": "pending",
+      "status": "complete",
       "name": "MSD Decomposition",
-      "method": "msd_decomposition"
+      "method": "msd_decomposition",
+      "category": "diagnostic and decomposition",
+      "output": {"return_shape": "4-tuple (MSD, SB, NU, LC)", "implemented_range": "four nominally nonnegative scalars; components may be NaN", "ideal_value": "(0, 0, 0, 0)"},
+      "implemented_behavior": {"formula": "MSD=mean(error^2); SB=mean(error)^2; NU=(1-slope(observation on prediction))^2*variance(prediction); LC=(1-R2)*variance(observation).", "preprocessing": ["Drop nonfinite pairs.", "Fit observation as a linear function of prediction with intercept."], "dependencies": ["msd", "sb", "nu", "lc", "linear_regression"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "Perfect all-zero series have MSD and SB zero but regression-derived components NaN.", "negative_inputs": "Accepted.", "constant_series": "Constant predictions make slope and R2 undefined, so NU and LC are NaN.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Gauch and coauthors decompose mean squared deviation into squared bias, nonunity slope, and lack-of-correlation components that add to MSD.", "references": [{"type": "primary", "title": "Model evaluation by comparison of model-based predictions and measured values", "authors_or_organization": "Gauch, Hwang, and Fick", "year": 2003, "url_or_doi": "https://doi.org/10.2134/agronj2003.1442", "supports": "Defines the three-component MSD decomposition and additivity."}], "known_variants": ["Regression orientation and component labels must be explicit; runtime regresses observation on prediction."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_msd_decomposition"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_msd_decomposition_returns_runtime_components_in_documented_tuple_order"], "ordinary_case": "[1,3,5] versus [2,3,4] returns (2/3,0,2/3,0), in the documented tuple order and with additive components.", "edge_case": "Constant predictions leave NU and LC undefined because regression slope/R2 are NaN."},
+      "findings": [{"type": "documentation-gap", "evidence": "The tuple exposes four unlabeled positional scalars and regression orientation is only discoverable from helper code.", "impact": "Callers can transpose component meaning or compare against the reciprocal regression convention.", "recommended_future_action": "Document tuple order and observation-on-prediction regression orientation prominently."}]
     },
     "SS": {
-      "status": "pending",
+      "status": "complete",
       "name": "Skill Score vs Climatology",
-      "method": "skill_score_against_climatology"
+      "method": "skill_score_against_climatology",
+      "category": "efficiency and environmental evaluation",
+      "output": {"return_shape": "scalar", "implemented_range": "(-infinity, 1] or NaN", "ideal_value": "1"},
+      "implemented_behavior": {"formula": "1-sum((prediction-observation)^2)/sum((observation-mean(observation))^2).", "preprocessing": ["Drop nonfinite pairs.", "Construct in-sample observation-mean climatology."], "dependencies": ["Bottleneck nanmean and nansum", "_safe_divide"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed before climatology.", "zero_inputs_or_denominators": "Constant observations give zero climatology error and return NaN.", "negative_inputs": "Accepted.", "constant_series": "Constant observations make the score undefined, including perfect constants.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "A skill score compares forecast score to a reference score as 1-score_forecast/score_reference; with squared error and mean climatology this equals Nash-Sutcliffe efficiency.", "references": [{"type": "primary", "title": "River flow forecasting through conceptual models part I — A discussion of principles", "authors_or_organization": "Nash and Sutcliffe", "year": 1970, "url_or_doi": "https://doi.org/10.1016/0022-1694(70)90255-6", "supports": "Defines the same squared-error ratio against deviations from the observed mean."}], "known_variants": ["Forecast skill scores may use out-of-sample or seasonal climatology and other proper scores."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_additional_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_skill_score_uses_observation_mean_climatology_and_squared_error"], "ordinary_case": "[1,2,6] versus [1,3,5] has squared error 2 and climatology squared error 8, giving 0.75.", "edge_case": "A constant observation series has zero climatology denominator and returns NaN."},
+      "findings": [{"type": "duplicate-or-overlap", "evidence": "Runtime SS is algebraically identical to registered NSE on the same filtered pairs.", "impact": "Two registry identities expose the same calculation without explaining the overlap.", "recommended_future_action": "Cross-reference SS and NSE and distinguish generic skill-score terminology from this implementation."}]
     },
     "AD": {
-      "status": "pending",
+      "status": "complete",
       "name": "Anderson-Darling Distance",
-      "method": "anderson_darling_distance"
+      "method": "anderson_darling_distance",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity)", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sum((F_obs(x)-F_pred(x))^2/(F_obs(x)*(1-F_obs(x))+1e-10)) over pooled unique sample values.", "preprocessing": ["Drop nonfinite pairs.", "Build right-continuous empirical CDFs and evaluate at pooled unique values."], "dependencies": ["Statsmodels ECDF", "NumPy unique and sort"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed first.", "zero_inputs_or_denominators": "A fixed 1e-10 stabilizer replaces zero tail denominators.", "negative_inputs": "Accepted as ordered sample values.", "constant_series": "Identical constants return zero; separated constants can produce about 1e10.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "The k-sample Anderson-Darling statistic is a rank-based, sample-size-normalized integral of squared ECDF differences weighted by a pooled distribution denominator.", "references": [{"type": "primary", "title": "A k-sample Anderson-Darling test", "authors_or_organization": "Scholz and Stephens", "year": 1987, "url_or_doi": "https://doi.org/10.1080/01621459.1987.10478517", "supports": "Defines the symmetric pooled-distribution k-sample Anderson-Darling statistic."}], "known_variants": ["Runtime weights only by observation ECDF, uses an unscaled grid sum, and is directional rather than the symmetric k-sample statistic."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_distribution_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_ad_is_directional_and_uses_observation_ecdf_for_weights"], "ordinary_case": "[0,1,3] versus [0,2,4] returns approximately 1 from the four nonzero weighted ECDF differences.", "edge_case": "Swapping prediction and observation changes the weights and produces a value above 1e8 in the characterized example."},
+      "findings": [{"type": "possible-defect", "evidence": "Runtime is directional and lacks pooled-CDF integration and sample-size normalization used by the named k-sample Anderson-Darling statistic.", "impact": "Magnitude and even symmetry differ from standard AD two-sample interpretations.", "recommended_future_action": "Confirm whether a custom distance was intended; otherwise consider a separately approved canonical implementation or rename."}]
     },
     "KLD": {
-      "status": "pending",
+      "status": "complete",
       "name": "Kullback-Leibler Divergence",
-      "method": "kullback_leibler_divergence"
+      "method": "kullback_leibler_divergence",
+      "category": "distribution and statistical comparison",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity] in the probability domain; all-zero inputs return 0", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "sum(rel_entr(abs(observation)/sum(abs(observation)), abs(prediction)/sum(abs(prediction)))).", "preprocessing": ["Drop nonfinite pairs.", "Take absolute element magnitudes and independently normalize each vector to unit sum."], "dependencies": ["SciPy special.rel_entr", "Bottleneck nansum"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Input nonfinite pairs are removed; NaN terms from zero-sum normalization are suppressed by nansum.", "zero_inputs_or_denominators": "Positive observation mass where prediction mass is zero yields infinity; both all-zero vectors return 0.", "negative_inputs": "Signs are discarded before normalization.", "constant_series": "Nonzero constants normalize uniformly and return zero even when magnitudes differ.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Relative entropy D(P||Q)=sum P log(P/Q) is directional and defined for probability distributions, with infinite divergence where P has mass and Q has none.", "references": [{"type": "primary", "title": "On information and sufficiency", "authors_or_organization": "Kullback and Leibler", "year": 1951, "url_or_doi": "https://doi.org/10.1214/aoms/1177729694", "supports": "Introduces the directional information divergence."}, {"type": "authoritative", "title": "scipy.special.rel_entr documentation", "authors_or_organization": "SciPy developers", "year": 2026, "url_or_doi": "https://docs.scipy.org/doc/scipy/reference/generated/scipy.special.rel_entr.html", "supports": "Defines elementwise x*log(x/y) and boundary behavior used by runtime."}], "known_variants": ["Raw samples normally require density estimation or binning before KLD; runtime treats array positions as categories and discards signs."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_distribution_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_kld_normalizes_absolute_magnitudes_and_orders_observations_first"], "ordinary_case": "Absolute prediction [1,3] and observation [2,2] normalize to Q=[.25,.75], P=[.5,.5], giving .5 ln 2 + .5 ln(2/3).", "edge_case": "Both all-zero arrays normalize to NaNs whose nansum is 0, so runtime reports zero divergence."},
+      "findings": [{"type": "validation-gap", "evidence": "Runtime silently converts signed arbitrary vectors to categorical distributions by absolute value and normalization; zero-sum NaNs collapse to zero.", "impact": "Distinct invalid/undefined inputs can appear identical, and ordering semantics are easy to misread.", "recommended_future_action": "Document D(observation||prediction), positional-category semantics, absolute conversion, and zero-sum behavior."}]
     },
     "MPE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Mean Percentage Error",
-      "method": "mean_percentage_error"
+      "method": "mean_percentage_error",
+      "category": "percentage error",
+      "output": {"return_shape": "scalar", "implemented_range": "unbounded signed percentage or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "100*mean((prediction-observation)/observation) over nonzero observations.", "preprocessing": ["Drop nonfinite pairs.", "Replace exactly zero observations with NaN and omit those ratios."], "dependencies": ["NumPy where", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed and zero-observation ratios omitted.", "zero_inputs_or_denominators": "Zero observations are omitted; all-zero observations return NaN.", "negative_inputs": "Accepted; denominator sign affects error direction.", "constant_series": "Returns the constant relative bias percentage when observation is nonzero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "Mean percentage error averages signed forecast error divided by actual value and is undefined when an actual value is zero.", "references": [{"type": "primary", "title": "Another look at measures of forecast accuracy", "authors_or_organization": "Hyndman and Koehler", "year": 2006, "url_or_doi": "https://doi.org/10.1016/j.ijforecast.2006.03.001", "supports": "Reviews percentage-error measures and their degeneracy at zero actual values."}], "known_variants": ["Libraries may raise, return infinity, add an epsilon, or omit zero actuals; runtime omits them."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_percentage_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_7.py::test_zero_observations_are_omitted_from_red_mpe_and_mape"], "ordinary_case": "Two 100-percent overpredictions average to MPE 100.", "edge_case": "For [100,4,1] versus [0,2,2], the zero-observation pair is omitted and (+100%-50%)/2=25%; all-zero observations return NaN."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime omits zero-observation cases from both numerator and effective count without documenting that sample-dependent policy.", "impact": "Large errors at zeros disappear and results may look better as zero frequency rises.", "recommended_future_action": "Document omission and effective sample behavior."}]
     },
     "MAPE": {
-      "status": "pending",
+      "status": "complete",
       "name": "Mean Absolute Percentage Error",
-      "method": "mean_absolute_percentage_error"
+      "method": "mean_absolute_percentage_error",
+      "category": "percentage error",
+      "output": {"return_shape": "scalar", "implemented_range": "[0, infinity) percentage or NaN", "ideal_value": "0"},
+      "implemented_behavior": {"formula": "100*mean(abs((prediction-observation)/observation)) over nonzero observations.", "preprocessing": ["Drop nonfinite pairs.", "Replace exactly zero observations with NaN and omit those ratios."], "dependencies": ["NumPy where and abs", "Bottleneck nanmean"]},
+      "parameters": [],
+      "edge_cases": {"nan_and_infinity": "Nonfinite pairs are removed and zero-observation ratios omitted.", "zero_inputs_or_denominators": "Zero observations are omitted; all-zero observations return NaN.", "negative_inputs": "Accepted; absolute value makes each contribution nonnegative but negative actuals retain magnitude scaling.", "constant_series": "Returns the absolute constant relative error percentage when observation is nonzero.", "no_data_after_preprocessing": "Construction raises ValueError."},
+      "scientific_basis": {"canonical_definition": "MAPE is the arithmetic mean of absolute errors divided by actual values, usually multiplied by 100; it is undefined for zero actuals and asymmetric under over/underforecasting.", "references": [{"type": "primary", "title": "Another look at measures of forecast accuracy", "authors_or_organization": "Hyndman and Koehler", "year": 2006, "url_or_doi": "https://doi.org/10.1016/j.ijforecast.2006.03.001", "supports": "Reviews MAPE, its zero-value undefinedness, and asymmetry limitations."}], "known_variants": ["Zero actuals may be rejected, omitted, epsilon-clipped, or handled by symmetric alternatives; runtime omits them."]},
+      "verification": {"existing_tests": ["tests/test_error_metrics.py::test_percentage_metrics"], "characterization_tests": ["tests/audit/test_characterization_batch_7.py::test_bias_distance_overlap_and_percentage_metrics_match_hand_calculations", "tests/audit/test_characterization_batch_7.py::test_zero_observations_are_omitted_from_red_mpe_and_mape"], "ordinary_case": "Two 100-percent overpredictions give MAPE 100.", "edge_case": "For [100,4,1] versus [0,2,2], the zero-observation pair is omitted and (100%+50%)/2=75%; all-zero observations return NaN."},
+      "findings": [{"type": "documentation-gap", "evidence": "Runtime silently omits zero actuals rather than treating canonical MAPE as undefined for the dataset.", "impact": "Errors at zeros are invisible and the averaging population changes.", "recommended_future_action": "Document zero omission and MAPE's asymmetry; consider explicit policy only in a separately approved runtime change."}]
     },
     "sMAPE": {
       "status": "pending",

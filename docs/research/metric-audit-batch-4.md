@@ -144,7 +144,11 @@ observation mean, or nonpositive residual degrees of freedom.
 - **Published variant.** Hydrologic model evaluation uses the monotone
   transformation \(NNSE=1/(2-NSE)\), which maps finite NSE values below or
   equal to one into `(0,1]` and maps NSE zero to `0.5`
-  ([NSE transformation documented in HESS](https://hess.copernicus.org/articles/23/4323/2019/)).
+  ([Smith, Patrick, Frazier, Kim, Flowers, and Ogden, *Hyper Resolution
+  Modeling of Urban Flood Inundation*, NOAA Technical Report NWS 56, 2020,
+  section 8.2, report pp. 13-14](https://doi.org/10.25923/9t55-tn77)). The NOAA
+  report explicitly states the formula, its 0-to-1 range, and the NSE-zero to
+  NNSE-0.5 mapping.
 - **Implemented behavior.** The method exactly applies `1 / (2 - NSE)` using
   `_safe_divide`. It returns one at exact agreement on nonconstant
   observations and approaches zero for very poor finite NSE. Undefined NSE

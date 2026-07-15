@@ -297,9 +297,7 @@ supported; otherwise they are marked context-dependent.
 | `PCD` | Prediction of Change in Direction | `prediction_of_change_in_direction` | Prediction of Change in Direction | [0, 1] | `1` |
 <!-- metric-reference:end -->
 
-### Interpreting the recovered metrics
-
-The seven recovered registry metrics use these definitions:
+### Bias metrics
 
 - `MBF = mean(predictions) / mean(observations)`; `RMBF = abs(MBF - 1)`.
   Both require strictly positive prediction and observation means.
@@ -307,11 +305,17 @@ The seven recovered registry metrics use these definitions:
   and `MFE = mean(2 * abs(predictions - observations) / (predictions + observations))`.
   Both require nonnegative paired inputs; an identical zero pair contributes
   zero.
+
+### Normalized error
+
+- `NMAEp = mean(abs(predictions - observations) ** p) ** (1 / p) / abs(mean(observations))`.
+  It requires finite `p > 0` and a nonzero observation mean.
+
+### Distribution similarity
+
 - `PHI = sum(min(prediction histogram probability, observation histogram probability))`.
   It requires integer `n_bins >= 1`; one means identical histogram mass and zero
   means no overlap for the chosen common bins.
-- `NMAEp = mean(abs(predictions - observations) ** p) ** (1 / p) / abs(mean(observations))`.
-  It requires finite `p > 0` and a nonzero observation mean.
 - `SUSE = max(abs(H(predictions; common bins) - H(observations; common bins)),
   abs(H(predictions; prediction bins) - H(observations; observation bins)))`.
   It requires integer `n_bins >= 1`. The common bins span the combined inputs;

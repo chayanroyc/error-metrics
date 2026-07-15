@@ -25,15 +25,13 @@ BATCH = (
 def test_batch_1_inventory_records_are_complete():
     inventory = json.loads((ROOT / "audit" / "metrics.yaml").read_text())
 
-    assert [
+    completed = [
         abbreviation
         for abbreviation, record in inventory["metrics"].items()
         if record["status"] == "complete"
-    ] == list(BATCH)
-    assert sum(
-        record["status"] == "pending"
-        for record in inventory["metrics"].values()
-    ) == 79
+    ]
+    assert completed[: len(BATCH)] == list(BATCH)
+    assert all(inventory["metrics"][abbreviation]["status"] == "complete" for abbreviation in BATCH)
 
 
 def test_foundational_errors_match_hand_calculations():

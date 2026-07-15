@@ -5,8 +5,8 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 ## Audit summary
 
 - Total registered metrics: 89
-- Completed: 10
-- Pending: 79
+- Completed: 20
+- Pending: 69
 
 ## bias
 
@@ -21,6 +21,7 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `MAE` | Mean Absolute Error | `mean_absolute_error` | complete |
 | `MedAE` | Median Absolute Error | `median_absolute_error` | complete |
 | `RMSE` | Root Mean Squared Error | `root_mean_squared_error` | complete |
+| `ME` | Max Error | `max_error` | complete |
 
 ## correlation and agreement
 
@@ -30,33 +31,37 @@ This report is generated from `audit/metrics.yaml`. Do not edit it by hand.
 | `SpearmanR` | Spearman Rank Correlation | `spearman_r` | complete |
 | `KendallTau` | Kendall Tau Correlation | `kendall_tau` | complete |
 | `LCCC` | Lin's Concordance Correlation | `lccc` | complete |
+| `CI` | Confidence Index | `confidence_index` | complete |
 
 ## efficiency and environmental evaluation
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `EV` | Explained Variance | `ev` | complete |
+| `EC` | Efficiency Coefficient | `efficiency_coefficient` | complete |
+| `R2` | Coefficient of Determination | `coefficient_of_determination` | complete |
 
 ## normalized and relative error
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
 | `NMSE` | Normalized Mean Square Error | `nmse` | complete |
+| `CRM` | Coefficient of Residual Mass | `coefficient_of_residual_mass` | complete |
+| `RE` | Relative Error | `relative_error` | complete |
+| `MASE` | Mean Absolute Scaled Error | `mean_absolute_scaled_error` | complete |
+| `A10` | A10 Index | `a10_index` | complete |
+| `MNB` | Mean Normalized Bias | `mean_normalized_bias` | complete |
+
+## percentage error
+
+| Abbreviation | Name | Method | Status |
+| --- | --- | --- | --- |
+| `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | complete |
 
 ## Pending audit
 
 | Abbreviation | Name | Method | Status |
 | --- | --- | --- | --- |
-| `CRM` | Coefficient of Residual Mass | `coefficient_of_residual_mass` | pending |
-| `RE` | Relative Error | `relative_error` | pending |
-| `EC` | Efficiency Coefficient | `efficiency_coefficient` | pending |
-| `MASE` | Mean Absolute Scaled Error | `mean_absolute_scaled_error` | pending |
-| `MAAPE` | Mean Arctangent Absolute Percentage Error | `mean_arctangent_absolute_percentage_error` | pending |
-| `A10` | A10 Index | `a10_index` | pending |
-| `CI` | Confidence Index | `confidence_index` | pending |
-| `ME` | Max Error | `max_error` | pending |
-| `R2` | Coefficient of Determination | `coefficient_of_determination` | pending |
-| `MNB` | Mean Normalized Bias | `mean_normalized_bias` | pending |
 | `MNAE` | Mean Normalized Absolute Error | `mean_normalized_absolute_error` | pending |
 | `FB` | Fractional Bias | `fb` | pending |
 | `FAE` | Fractional Absolute Error | `fae` | pending |

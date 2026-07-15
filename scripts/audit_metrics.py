@@ -303,6 +303,121 @@ def validate_inventory(
     return errors
 
 
+def _render_string_items(lines: List[str], label: str, values: List[str]) -> None:
+    lines.append(f"- {label}:")
+    if values:
+        lines.extend(f"  - {value}" for value in values)
+    else:
+        lines.append("  - None")
+
+
+def _render_metric_record(
+    lines: List[str], abbreviation: str, record: Mapping[str, Any]
+) -> None:
+    anchor = abbreviation.lower()
+    lines.extend(
+        [
+            f'<a id="metric-{anchor}"></a>',
+            f"### `{abbreviation}` — {record['name']}",
+            "",
+            f"- Registered method: `{record['method']}`",
+            f"- Category: {record['category']}",
+            f"- Return shape: {record['output']['return_shape']}",
+            f"- Implemented range: {record['output']['implemented_range']}",
+            f"- Ideal value: {record['output']['ideal_value']}",
+            "",
+            "#### Implemented behavior",
+            "",
+            f"- Formula: {record['implemented_behavior']['formula']}",
+        ]
+    )
+    _render_string_items(
+        lines, "Preprocessing", record["implemented_behavior"]["preprocessing"]
+    )
+    _render_string_items(
+        lines, "Dependencies", record["implemented_behavior"]["dependencies"]
+    )
+    lines.extend(["", "#### Parameters", ""])
+    if record["parameters"]:
+        lines.extend(
+            [
+                "| Name | Default | Accepted types | Validation | Invalid behavior |",
+                "| --- | --- | --- | --- | --- |",
+            ]
+        )
+        for parameter in record["parameters"]:
+            accepted = ", ".join(parameter["accepted_types"])
+            lines.append(
+                f"| `{parameter['name']}` | `{parameter['default']}` | "
+                f"{_markdown_cell(accepted)} | {_markdown_cell(parameter['validation'])} | "
+                f"{_markdown_cell(parameter['invalid_behavior'])} |"
+            )
+    else:
+        lines.append("No public parameters.")
+
+    lines.extend(["", "#### Edge cases", ""])
+    edge_labels = (
+        ("nan_and_infinity", "NaN and infinity"),
+        ("zero_inputs_or_denominators", "Zero inputs or denominators"),
+        ("negative_inputs", "Negative inputs"),
+        ("constant_series", "Constant series"),
+        ("no_data_after_preprocessing", "No data after preprocessing"),
+    )
+    for field, label in edge_labels:
+        lines.append(f"- {label}: {record['edge_cases'][field]}")
+
+    basis = record["scientific_basis"]
+    lines.extend(
+        [
+            "",
+            "#### Scientific basis",
+            "",
+            f"- Canonical or reference definition: {basis['canonical_definition']}",
+            "- References:",
+        ]
+    )
+    if basis["references"]:
+        for reference in basis["references"]:
+            lines.append(
+                f"  - [{reference['title']}]({reference['url_or_doi']}) — "
+                f"{reference['authors_or_organization']} ({reference['year']}), "
+                f"{reference['type']}. Supports: {reference['supports']}"
+            )
+    else:
+        lines.append("  - None; see the explicit unknown explanation above.")
+    _render_string_items(lines, "Known variants", basis["known_variants"])
+
+    verification = record["verification"]
+    lines.extend(
+        [
+            "",
+            "#### Characterization and tests",
+            "",
+            f"- Ordinary case: {verification['ordinary_case']}",
+            f"- Edge case: {verification['edge_case']}",
+        ]
+    )
+    _render_string_items(lines, "Existing tests", verification["existing_tests"])
+    _render_string_items(
+        lines, "Characterization tests", verification["characterization_tests"]
+    )
+
+    lines.extend(["", "#### Findings and recommended future action", ""])
+    if record["findings"]:
+        for finding in record["findings"]:
+            lines.extend(
+                [
+                    f"- `{finding['type']}`",
+                    f"  - Evidence: {finding['evidence']}",
+                    f"  - Impact: {finding['impact']}",
+                    f"  - Recommended future action: {finding['recommended_future_action']}",
+                ]
+            )
+    else:
+        lines.append("- No reviewed findings.")
+    lines.append("")
+
+
 def render_markdown(inventory: Mapping[str, Any]) -> str:
     """Render a deterministic Markdown report using inventory data only."""
     metrics = inventory["metrics"]
@@ -371,10 +486,15 @@ def render_markdown(inventory: Mapping[str, Any]) -> str:
         )
         for abbreviation, record in records:
             lines.append(
-                f"| <a id=\"metric-{abbreviation.lower()}\"></a>`{abbreviation}` | {record['name']} | "
+                f"| [`{abbreviation}`](#metric-{abbreviation.lower()}) | {record['name']} | "
                 f"`{record['method']}` | {record['status']} |"
             )
         lines.append("")
+
+    lines.extend(["## Detailed metric records", ""])
+    for abbreviation, record in metrics.items():
+        if record.get("status") == "complete":
+            _render_metric_record(lines, abbreviation, record)
 
     return "\n".join(lines)
 

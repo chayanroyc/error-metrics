@@ -185,6 +185,50 @@ def test_renderer_matches_committed_report():
     assert audit_metrics.render_markdown(inventory) == REPORT_PATH.read_text()
 
 
+def test_renderer_emits_a_complete_anchored_section_for_every_metric():
+    audit_metrics = load_audit_module()
+    inventory = audit_metrics.load_inventory(INVENTORY_PATH)
+    rendered = audit_metrics.render_markdown(inventory)
+
+    assert rendered.count('<a id="metric-') == 89
+    assert '<a id="metric-mb"></a>\n### `MB` — Mean Bias' in rendered
+    assert "#### Scientific basis" in rendered
+    canonical_definition = inventory["metrics"]["MB"]["scientific_basis"][
+        "canonical_definition"
+    ]
+    assert canonical_definition in rendered
+    assert "[Reassessment of the Interagency Workgroup" in rendered
+    assert "https://nepis.epa.gov/Exe/ZyPURL.cgi?Dockey=P1004TD4.TXT" in rendered
+    assert "Some fields define bias with observation minus prediction" in rendered
+    assert "mean(predictions) - mean(observations)" in rendered
+    assert "tests/audit/test_characterization_batch_1.py::" in rendered
+    assert "Document the prediction-minus-observation convention" in rendered
+
+
+def test_renderer_includes_parameters_output_and_all_edge_case_labels():
+    rendered = load_audit_module().render_markdown(
+        load_audit_module().load_inventory(INVENTORY_PATH)
+    )
+
+    assert (
+        '<a id="metric-mase"></a>\n### `MASE` — Mean Absolute Scaled Error'
+        in rendered
+    )
+    assert (
+        "| `m` | `1` | any runtime object | "
+        "None; the parameter is never inspected."
+    ) in rendered
+    assert "- Return shape: scalar" in rendered
+    for label in (
+        "NaN and infinity",
+        "Zero inputs or denominators",
+        "Negative inputs",
+        "Constant series",
+        "No data after preprocessing",
+    ):
+        assert f"- {label}:" in rendered
+
+
 def test_final_inventory_is_complete_and_characterized():
     inventory = load_audit_module().load_inventory(INVENTORY_PATH)
     records = inventory["metrics"].values()
